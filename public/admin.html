@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RCM Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #f4f4f6;
+    --bg2:      #ffffff;
+    --bg3:      #f0f0f3;
+    --bg4:      #e8e8ee;
+    --border:   rgba(0,0,0,0.07);
+    --border2:  rgba(0,0,0,0.12);
+    --text:     #111118;
+    --text2:    #555566;
+    --text3:    #9999aa;
+    --accent:   #2d2dff;
+    --accent2:  #5555ff;
+    --accentbg: rgba(45,45,255,0.07);
+    --green:    #00b37e;
+    --greenbg:  rgba(0,179,126,0.08);
+    --amber:    #d97706;
+    --amberbg:  rgba(217,119,6,0.08);
+    --red:      #dc2626;
+    --redbg:    rgba(220,38,38,0.08);
+    --blue:     #2563eb;
+    --bluebg:   rgba(37,99,235,0.08);
+    --purple:   #7c3aed;
+    --purplebg: rgba(124,58,237,0.08);
+    --font:     'Sora', sans-serif;
+    --mono:     'DM Mono', monospace;
+    --display:  'Fraunces', serif;
+    --sidebar:  268px;
+    --radius:   14px;
+    --radius2:  9px;
+    --shadow:   0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+    --shadow2:  0 2px 8px rgba(0,0,0,0.08), 0 12px 32px rgba(0,0,0,0.06);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    width: var(--sidebar);
+    height: 100vh;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 2px 0 20px rgba(0,0,0,0.04);
+  }
+
+  .sidebar-brand {
+    padding: 28px 22px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .brand-icon {
+    width: 36px; height: 36px;
+    background: var(--text);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .brand-lockup {}
+  .brand-name {
+    font-family: var(--display);
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.3px;
+    line-height: 1;
+  }
+
+  .brand-sub {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: var(--mono);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .nav {
+    padding: 18px 14px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .nav-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    padding: 14px 8px 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 2px;
+    border-radius: var(--radius2);
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text2);
+    transition: all 0.15s;
+    position: relative;
+    user-select: none;
+  }
+
+  .nav-item:hover {
+    background: var(--bg3);
+    color: var(--text);
+  }
+
+  .nav-item.active {
+    background: var(--text);
+    color: #fff;
+  }
+
+  .nav-item.active .nav-badge {
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.9);
+  }
+
+  .nav-icon {
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  .nav-item.active .nav-icon { opacity: 1; }
+
+  .nav-badge {
+    margin-left: auto;
+    font-size: 10px;
+    font-family: var(--mono);
+    background: var(--bg3);
+    color: var(--text3);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .nav-separator {
+    height: 1px;
+    background: var(--border);
+    margin: 10px 0;
+  }
+
+  .sidebar-footer {
+    padding: 16px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg3);
+  }
+
+  .admin-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg2);
+    border-radius: var(--radius2);
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+
+  .admin-avatar {
+    width: 36px; height: 36px;
+    background: var(--text);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+    color: #fff;
+    font-family: var(--display);
+  }
+
+  .admin-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .admin-role { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+
+  .status-indicator {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--green);
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.5; transform:scale(0.85); }
+  }
+
+  .btn-logout {
+    width: 100%;
+    padding: 9px;
+    background: transparent;
+    color: var(--text3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius2);
+    font-family: var(--font);
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-logout:hover {
+    background: var(--redbg);
+    color: var(--red);
+    border-color: rgba(220,38,38,0.2);
+  }
+
+  /* ─── MAIN ─── */
+  .main {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* TOPBAR */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 28px;
+    height: 62px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    flex-shrink: 0;
+    box-shadow: 0 1px 0 var(--border);
+  }
+
+  .topbar-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .breadcrumb-root {
+    font-size: 12px;
+    color: var(--text3);
+    font-family: var(--mono);
+  }
+
+  .breadcrumb-sep { color: var(--text3); font-size: 11px; }
+
+  .page-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .topbar-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .topbar-chip:hover {
+    background: var(--bg4);
+    color: var(--text);
+  }
+
+  .topbar-chip.primary {
+    background: var(--text);
+    color: #fff;
+    border-color: var(--text);
+  }
+
+  .topbar-chip.primary:hover {
+    background: #333;
+  }
+
+  .time-chip {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text3);
+    padding: 6px 14px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    letter-spacing: 0.5px;
+  }
+
+  /* CONTENT */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px;
+    background: var(--bg);
+  }
+
+  .section { display:none; }
+  .section.active { display:block; animation:fadeIn 0.22s ease; }
+
+  @keyframes fadeIn {
+    from { opacity:0; transform:translateY(8px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* ─── STAT GRID ─── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 22px 18px;
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.2s, transform 0.2s;
+    box-shadow: var(--shadow);
+    cursor: default;
+  }
+
+  .stat-card:hover {
+    box-shadow: var(--shadow2);
+    transform: translateY(-2px);
+  }
+
+  .stat-accent-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .c-blue  .stat-accent-bar { background: var(--blue); }
+  .c-green .stat-accent-bar { background: var(--green); }
+  .c-amber .stat-accent-bar { background: var(--amber); }
+  .c-purple .stat-accent-bar { background: var(--purple); }
+
+  .stat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 500;
+  }
+
+  .stat-icon-wrap {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+  }
+
+  .c-blue  .stat-icon-wrap { background: var(--bluebg); }
+  .c-green .stat-icon-wrap { background: var(--greenbg); }
+  .c-amber .stat-icon-wrap { background: var(--amberbg); }
+  .c-purple .stat-icon-wrap { background: var(--purplebg); }
+
+  .stat-value {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-family: var(--display);
+    font-style: italic;
+  }
+
+  .stat-sub {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--text3);
+  }
+
+  .trend-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+
+  .trend-up { background: var(--greenbg); color: var(--green); }
+  .trend-dn { background: var(--redbg);   color: var(--red); }
+  .trend-nu { background: var(--purplebg); color: var(--purple); }
+
+  /* ─── TABLES ─── */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .table-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-title {
+    font-size: 14px;
+    font-weight: 600;
+    flex: 1;
+    color: var(--text);
+  }
+
+  .search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 7px 14px;
+    min-width: 220px;
+    transition: border-color 0.15s;
+  }
+
+  .search-wrap:focus-within { border-color: var(--accent); }
+
+  .search-wrap span { color: var(--text3); font-size: 13px; }
+
+  .search-wrap input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    width: 100%;
+  }
+
+  .search-wrap input::placeholder { color: var(--text3); }
+
+  table { width:100%; border-collapse:collapse; }
+
+  thead th {
+    background: var(--bg3);
+    padding: 10px 18px;
+    text-align: left;
+    font-size: 10.5px;
+    font-family: var(--mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: var(--bg3); }
+
+  tbody td {
+    padding: 13px 18px;
+    font-size: 13.5px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+
+  .td-main { color: var(--text) !important; font-weight: 600; }
+
+  .order-id {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent2);
+    background: var(--accentbg);
+    padding: 3px 9px;
+    border-radius: 5px;
+    border: 1px solid rgba(45,45,255,0.12);
+  }
+
+  /* STATUS BADGES */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+
+  .badge-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+  }
+
+  .s-placed   { background: var(--bluebg);   color: var(--blue);   }
+  .s-placed .badge-dot   { background: var(--blue); }
+  .s-packed   { background: var(--amberbg);  color: var(--amber);  }
+  .s-packed .badge-dot   { background: var(--amber); }
+  .s-shipped  { background: var(--purplebg); color: var(--purple); }
+  .s-shipped .badge-dot  { background: var(--purple); }
+  .s-out      { background: rgba(6,182,212,0.08); color: #0891b2; }
+  .s-out .badge-dot      { background: #0891b2; }
+  .s-delivered { background: var(--greenbg); color: var(--green);  }
+  .s-delivered .badge-dot { background: var(--green); }
+
+  /* ─── TWO COL LAYOUT ─── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+  }
+
+  .right-col { display: flex; flex-direction: column; gap: 16px; }
+
+  /* Status breakdown */
+  .breakdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+  }
+
+  .breakdown-label {
+    font-size: 12.5px;
+    font-weight: 500;
+    width: 120px;
+    flex-shrink: 0;
+    color: var(--text2);
+  }
+
+  .breakdown-bar-wrap {
+    flex: 1;
+    height: 5px;
+    background: var(--bg4);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .breakdown-bar {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .breakdown-count {
+    font-size: 11.5px;
+    font-family: var(--mono);
+    color: var(--text3);
+    width: 28px;
+    text-align: right;
+  }
+
+  /* Chart */
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 56px;
+    padding: 0 2px;
+  }
+
+  .bar {
+    flex: 1;
+    background: var(--bg4);
+    border-radius: 4px 4px 0 0;
+    transition: background 0.2s;
+    cursor: pointer;
+    min-width: 8px;
+    position: relative;
+  }
+
+  .bar:hover, .bar.highlight { background: var(--text); }
+
+  /* ─── TRACKING ─── */
+  .track-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .panel-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 26px;
+    box-shadow: var(--shadow);
+  }
+
+  .panel-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+  }
+
+  .form-group { margin-bottom: 14px; }
+
+  .form-label {
+    display: block;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg3);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius2);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .form-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45,45,255,0.08);
+    background: var(--bg2);
+  }
+
+  .form-select {
+    width: 100%;
+    padding: 10px 36px 10px 14px;
+    background: var(--bg3);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius2);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13.5px;
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+  }
+
+  .form-select:focus { border-color: var(--accent); }
+
+  .btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: var(--text);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius2);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 8px;
+    letter-spacing: 0.2px;
+  }
+
+  .btn-primary:hover {
+    background: #333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  .btn-primary:active { transform: translateY(0); }
+
+  /* Status timeline */
+  .status-timeline { display:flex; flex-direction:column; }
+
+  .timeline-item {
+    display: flex;
+    gap: 14px;
+    padding-bottom: 22px;
+    position: relative;
+  }
+
+  .timeline-line {
+    position: absolute;
+    left: 13px;
+    top: 28px;
+    bottom: 0;
+    width: 1px;
+    background: var(--border2);
+  }
+
+  .timeline-item:last-child .timeline-line { display: none; }
+  .timeline-item:last-child { padding-bottom: 0; }
+
+  .timeline-dot {
+    width: 27px; height: 27px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-family: var(--mono);
+    flex-shrink: 0;
+    border: 1.5px solid var(--border2);
+    background: var(--bg3);
+    color: var(--text3);
+    z-index: 1;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .timeline-dot.done {
+    background: var(--text);
+    border-color: var(--text);
+    color: #fff;
+  }
+
+  .timeline-content { flex:1; padding-top: 3px; }
+  .timeline-label { font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .timeline-desc  { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+  /* ─── TOPBAR BTN ─── */
+  .topbar-btn {
+    padding: 7px 14px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius2);
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+  }
+
+  .topbar-btn:hover {
+    background: var(--bg4);
+    color: var(--text);
+  }
+
+  /* ─── QUICK VIEW ─── */
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text3);
+  }
+
+  .empty-icon { font-size: 28px; margin-bottom: 10px; }
+  .empty-state p { font-size: 13px; }
+
+  /* ─── TOAST ─── */
+  .alert {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    padding: 13px 20px;
+    border-radius: var(--radius2);
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 999;
+    animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: var(--shadow2);
+  }
+
+  @keyframes slideUp {
+    from { transform:translateY(20px); opacity:0; }
+    to   { transform:translateY(0); opacity:1; }
+  }
+
+  .alert.success {
+    background: #fff;
+    border: 1px solid rgba(0,179,126,0.25);
+    color: var(--green);
+    box-shadow: 0 4px 20px rgba(0,179,126,0.15), var(--shadow2);
+  }
+
+  .alert.error {
+    background: #fff;
+    border: 1px solid rgba(220,38,38,0.25);
+    color: var(--red);
+    box-shadow: 0 4px 20px rgba(220,38,38,0.12), var(--shadow2);
+  }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width:5px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius:10px; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 1100px) {
+    .stat-grid { grid-template-columns: repeat(2,1fr); }
+    .two-col   { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 860px) {
+    .sidebar { width:200px; }
+    .track-panel { grid-template-columns:1fr; }
+  }
+
+  .modal{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.6);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+.modal-content{
+  background:#fff;
+  padding:20px;
+  width:90%;
+  max-width:600px;
+  border-radius:10px;
+  max-height:90vh;
+  overflow:auto;
+}
+.close-btn{
+  float:right;
+  font-size:20px;
+  cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-lockup">
+        <div class="brand-name">RCM Admin</div>
+        <div class="brand-sub">Control Panel</div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-label">Main</div>
+    <div class="nav-item active" onclick="showSection('dashboard',this)">
+      <span class="nav-icon">▣</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showSection('orders',this)">
+      <span class="nav-icon">⊞</span> Orders
+      <span class="nav-badge" id="navOrderBadge">—</span>
+    </div>
+    <div class="nav-item" onclick="showSection('customers',this)">
+      <span class="nav-icon">◎</span> Customers
+      <span class="nav-badge" id="navCustBadge">—</span>
+    </div>
+
+    <div class="nav-label">Operations</div>
+    <div class="nav-item" onclick="showSection('tracking',this)">
+      <span class="nav-icon">⊳</span> Tracking
+    </div>
+    <div class="nav-item" onclick="showSection('contacts',this)">
+      <span class="nav-icon">✉</span> Messages
+      <span class="nav-badge" id="navMsgBadge">—</span>
+    </div>
+
+    <div class="nav-separator"></div>
+
+    <div class="nav-label">Coming Soon</div>
+    <div class="nav-item" style="opacity:0.35;cursor:default;">
+      <span class="nav-icon">◈</span> Analytics
+    </div>
+    <div class="nav-item" style="opacity:0.35;cursor:default;">
+      <span class="nav-icon">⊗</span> Products
+    </div>
+    <div class="nav-item" style="opacity:0.35;cursor:default;">
+      <span class="nav-icon">◷</span> Reports
+    </div>
+    <div class="nav-item" style="opacity:0.35;cursor:default;">
+      <span class="nav-icon">⊙</span> Settings
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="admin-card">
+      <div class="admin-avatar">A</div>
+      <div class="admin-info">
+        <div class="admin-name">Admin</div>
+        <div class="admin-role">Superuser</div>
+      </div>
+      <div class="status-indicator">
+        <div class="status-dot"></div>
+        live
+      </div>
+    </div>
+    <button class="btn-logout" onclick="logout()">
+      ⎋ &nbsp;Logout
+    </button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-breadcrumb">
+      <span class="breadcrumb-root">rcm</span>
+      <span class="breadcrumb-sep">›</span>
+      <span class="page-title" id="pageTitle">Dashboard</span>
+    </div>
+    <div class="topbar-actions">
+      <div class="time-chip" id="clockDisplay">--:--:--</div>
+      <div class="topbar-chip" onclick="refreshCurrent()">↻ &nbsp;Refresh</div>
+      <div class="topbar-chip primary">+ &nbsp;New Order</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="dashboard" class="section active">
+
+      <div class="stat-grid">
+        <div class="stat-card c-blue">
+          <div class="stat-accent-bar"></div>
+          <div class="stat-top">
+            <div class="stat-label">Total Orders</div>
+            <div class="stat-icon-wrap">📦</div>
+          </div>
+          <div class="stat-value" id="totalOrders">—</div>
+          <div class="stat-sub">
+            <span class="trend-tag trend-up" id="ordTrend">↑ loading</span>
+          </div>
+        </div>
+        <div class="stat-card c-green">
+          <div class="stat-accent-bar"></div>
+          <div class="stat-top">
+            <div class="stat-label">Customers</div>
+            <div class="stat-icon-wrap">👥</div>
+          </div>
+          <div class="stat-value" id="totalCustomers">—</div>
+          <div class="stat-sub">
+            <span class="trend-tag trend-up" id="custTrend">↑ loading</span>
+          </div>
+        </div>
+        <div class="stat-card c-amber">
+          <div class="stat-accent-bar"></div>
+          <div class="stat-top">
+            <div class="stat-label">Revenue</div>
+            <div class="stat-icon-wrap">₹</div>
+          </div>
+          <div class="stat-value" id="totalRevenue">—</div>
+          <div class="stat-sub">
+            <span class="trend-tag trend-up" id="revTrend">↑ loading</span>
+          </div>
+        </div>
+        <div class="stat-card c-purple">
+          <div class="stat-accent-bar"></div>
+          <div class="stat-top">
+            <div class="stat-label">Messages</div>
+            <div class="stat-icon-wrap">✉</div>
+          </div>
+          <div class="stat-value" id="totalMessages">—</div>
+          <div class="stat-sub">
+            <span class="trend-tag trend-nu" id="msgTrend">↑ loading</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="table-wrap">
+          <div class="table-header">
+            <span class="table-title">Recent Orders</span>
+            <button class="topbar-btn" onclick="showSection('orders',null)">View All →</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recentOrdersTable">
+              <tr><td colspan="4"><div class="empty-state"><p>Loading…</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="right-col">
+          <div class="table-wrap">
+            <div class="table-header">
+              <span class="table-title">Status Breakdown</span>
+            </div>
+            <div style="padding:14px 20px 18px;" id="statusBreakdown"></div>
+          </div>
+
+          <div class="table-wrap">
+            <div class="table-header">
+              <span class="table-title">Weekly Activity</span>
+            </div>
+            <div style="padding:16px 20px 14px;">
+              <div class="chart-bars" id="weekChart">
+                <div class="bar" style="height:40%"></div>
+                <div class="bar" style="height:62%"></div>
+                <div class="bar" style="height:45%"></div>
+                <div class="bar" style="height:80%"></div>
+                <div class="bar highlight" style="height:70%"></div>
+                <div class="bar" style="height:52%"></div>
+                <div class="bar" style="height:30%"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 2px 0;font-size:10px;font-family:var(--mono);color:var(--text3);">
+                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ORDERS ── -->
+    <div id="orders" class="section">
+      <div class="table-wrap">
+        <div class="table-header">
+          <span class="table-title">All Orders</span>
+          <div class="search-wrap">
+            <span>⌕</span>
+            <input type="text" placeholder="Search orders…" onkeyup="searchTable(this,'ordersTable')">
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Phone</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTable">
+            <tr><td colspan="6"><div class="empty-state"><p>Loading…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── CUSTOMERS ── -->
+    <div id="customers" class="section">
+      <div class="table-wrap">
+        <div class="table-header">
+          <span class="table-title">All Customers</span>
+          <div class="search-wrap">
+            <span>⌕</span>
+            <input type="text" placeholder="Search customers…" onkeyup="searchTable(this,'customersTable')">
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th>Orders</th>
+            </tr>
+          </thead>
+          <tbody id="customersTable">
+            <tr><td colspan="5"><div class="empty-state"><p>Loading…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── TRACKING ── -->
+    <div id="tracking" class="section">
+      <div class="track-panel">
+        <div class="panel-card">
+          <h3>⊳ Update Order Status</h3>
+          <div class="form-group">
+            <label class="form-label">Order ID</label>
+            <input class="form-input" type="text" id="orderId" placeholder="e.g. ORD-1001">
+          </div>
+          <div class="form-group">
+            <label class="form-label">New Status</label>
+            <select class="form-select" id="status">
+              <option>Order Placed</option>
+              <option>Packed</option>
+              <option>Shipped</option>
+              <option>Out for Delivery</option>
+              <option>Delivered</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Note (optional)</label>
+            <input class="form-input" type="text" id="trackNote" placeholder="Internal note for this update…">
+          </div>
+          <button class="btn-primary" onclick="updateStatus()">✓ &nbsp;Update Status</button>
+        </div>
+
+        <div class="panel-card">
+          <h3>◈ Status Flow</h3>
+          <div class="status-timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot done">1</div>
+              <div class="timeline-line"></div>
+              <div class="timeline-content">
+                <div class="timeline-label">Order Placed</div>
+                <div class="timeline-desc">Customer confirmed the order</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot done">2</div>
+              <div class="timeline-line"></div>
+              <div class="timeline-content">
+                <div class="timeline-label">Packed</div>
+                <div class="timeline-desc">Items picked & packed at warehouse</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot">3</div>
+              <div class="timeline-line"></div>
+              <div class="timeline-content">
+                <div class="timeline-label">Shipped</div>
+                <div class="timeline-desc">Handed to delivery partner</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot">4</div>
+              <div class="timeline-line"></div>
+              <div class="timeline-content">
+                <div class="timeline-label">Out for Delivery</div>
+                <div class="timeline-desc">On the way to customer</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot">5</div>
+              <div class="timeline-line"></div>
+              <div class="timeline-content">
+                <div class="timeline-label">Delivered</div>
+                <div class="timeline-desc">Successfully delivered</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONTACTS ── -->
+    <div id="contacts" class="section">
+      <div class="table-wrap">
+        <div class="table-header">
+          <span class="table-title">Contact Messages</span>
+          <div class="search-wrap">
+            <span>⌕</span>
+            <input type="text" placeholder="Search messages…" onkeyup="searchTable(this,'contactTable')">
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Message</th>
+              <th>Reply</th>
+            </tr>
+          </thead>
+          <tbody id="contactTable">
+            <tr><td colspan="4"><div class="empty-state"><p>Loading…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ── CONFIG ── */
+const API = location.origin;
+
+/* ── CLOCK ── */
+function updateClock(){
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clockDisplay').textContent = `${h}:${m}:${s}`;
+}
+setInterval(updateClock,1000);
+updateClock();
+
+/* ── ADMIN CHECK ── */
+async function checkAdmin(){
+  try{
+    const res = await fetch(`${API}/api/check-admin`,{credentials:"include"});
+    if(!res.ok) throw new Error("Auth failed");
+
+    const data = await res.json();
+    if(!data.loggedIn) window.location.href="/";
+  }catch(e){
+    console.error("Admin check failed:",e);
+    window.location.href="/";
+  }
+}
+checkAdmin();
+
+/* ── LOGOUT ── */
+async function logout(){
+  try{
+    await fetch(`${API}/api/admin-logout`,{
+      method:"POST",
+      credentials:"include"
+    });
+    window.location.href="/";
+  }catch(e){
+    console.error(e);
+    alert("Logout failed");
+  }
+}
+
+/* ── NAVIGATION ── */
+let currentSection='dashboard';
+
+function showSection(id,el){
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  if(el) el.classList.add("active");
+
+  const titles={
+    dashboard:"Dashboard",
+    orders:"Orders",
+    customers:"Customers",
+    tracking:"Tracking",
+    contacts:"Contact Messages"
+  };
+
+  document.getElementById('pageTitle').textContent=titles[id]||id;
+  currentSection=id;
+
+  if(id==='orders') loadOrders();
+  if(id==='customers') loadCustomers();
+  if(id==='contacts') loadContacts();
+  if(id==='dashboard') loadDashboard();
+}
+
+function refreshCurrent(){
+  showSection(currentSection, document.querySelector('.nav-item.active'));
+}
+
+/* ── SEARCH ── */
+function searchTable(input,id){
+  const q=input.value.toLowerCase();
+  document.querySelectorAll("#"+id+" tr").forEach(r=>{
+    r.style.display=r.innerText.toLowerCase().includes(q)?'':'none';
+  });
+}
+
+/* ── STATUS UI ── */
+function statusClass(s){
+  return {
+    "Order Placed":"s-placed",
+    "Packed":"s-packed",
+    "Shipped":"s-shipped",
+    "Out for Delivery":"s-out",
+    "Delivered":"s-delivered"
+  }[s]||"s-placed";
+}
+
+function statusBadge(s){
+  return `<span class="badge ${statusClass(s)}"><span class="badge-dot"></span>${s||'Order Placed'}</span>`;
+}
+
+/* ── TOAST ── */
+function toast(msg,type='success'){
+  const el=document.createElement('div');
+  el.className=`alert ${type}`;
+  el.innerHTML=`<span>${type==='success'?'✓':'✕'}</span> ${msg}`;
+  document.body.appendChild(el);
+
+  setTimeout(()=>el.style.opacity='0',2800);
+  setTimeout(()=>el.remove(),3200);
+}
+
+/* ── DASHBOARD ── */
+async function loadDashboard(){
+  try{
+    const res = await fetch(`${API}/api/dashboard`,{credentials:"include"});
+    if(!res.ok) throw new Error("Dashboard API failed");
+
+    const data = await res.json();
+
+    document.getElementById('totalOrders').textContent    = data.totalOrders || '0';
+    document.getElementById('totalCustomers').textContent = data.totalCustomers || '0';
+    document.getElementById('totalRevenue').textContent   = '₹'+(data.totalRevenue||0).toLocaleString('en-IN');
+    document.getElementById('totalMessages').textContent  = data.totalMessages || '0';
+
+    document.getElementById('navOrderBadge').textContent  = data.totalOrders || 0;
+    document.getElementById('navCustBadge').textContent   = data.totalCustomers || 0;
+    document.getElementById('navMsgBadge').textContent    = data.totalMessages || 0;
+
+  }catch(e){
+    console.error(e);
+    document.getElementById('totalOrders').textContent='Err';
+  }
+
+  /* RECENT ORDERS */
+  try{
+    const res = await fetch(`${API}/api/get-orders`,{credentials:"include"});
+    if(!res.ok) throw new Error("Orders fetch failed");
+
+    const data = await res.json();
+    const t = document.getElementById('recentOrdersTable');
+
+    if(!data.orders || data.orders.length===0){
+      t.innerHTML=`<tr><td colspan="4"><div class="empty-state">📭 No orders yet</div></td></tr>`;
+      return;
+    }
+
+    t.innerHTML=data.orders.slice(0,5).map(o=>`
+      <tr>
+        <td><span class="order-id">${o.orderId}</span></td>
+        <td class="td-main">${o.fname} ${o.lname}</td>
+        <td>₹${Number(o.grandTotal||0).toLocaleString('en-IN')}</td>
+        <td>${statusBadge(o.status)}</td>
+      </tr>
+    `).join('');
+
+  }catch(e){
+    console.error(e);
+  }
+}
+
+/* ── ORDERS ── */
+async function loadOrders() {
+  const table = document.getElementById("ordersTable");
+
+  // Loading UI
+  table.innerHTML = `
+    <tr>
+      <td colspan="6">
+        <div class="empty-state">⏳ Loading...</div>
+      </td>
+    </tr>
+  `;
+
+  try {
+    const res = await fetch(`${API}/api/get-orders`, {
+      credentials: "include",
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch orders");
+
+    const data = await res.json();
+
+    // ✅ FIX 1: Proper validation
+    if (!data.success || !Array.isArray(data.orders) || data.orders.length === 0) {
+      table.innerHTML = `
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">📭 No orders found</div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    // ✅ FIX 2: Safe rendering + fallback values
+    table.innerHTML = data.orders.map(order => {
+      const fullName = `${order.fname || ""} ${order.lname || ""}`.trim();
+      const phone = order.phone || "-";
+      const total = Number(order.grandTotal || 0).toLocaleString("en-IN");
+      const status = order.status || "Order Placed";
+
+      return `
+        <tr>
+          <td><span class="order-id">${order.orderId || "-"}</span></td>
+          <td class="td-main">${fullName || "-"}</td>
+          <td>${phone}</td>
+          <td>₹${total}</td>
+          <td>${statusBadge(status)}</td>
+          <td>
+  <button class="topbar-btn" onclick="viewOrder('${order.orderId}')">
+    View →
+  </button>
+</td>
+        </tr>
+      `;
+    }).join("");
+
+  } catch (error) {
+    console.error("Load Orders Error:", error);
+
+    table.innerHTML = `
+      <tr>
+        <td colspan="6">
+          <div class="empty-state">❌ Error loading orders</div>
+        </td>
+      </tr>
+    `;
+  }
+}
+
+async function viewOrder(orderId) {
+  try {
+    const res = await fetch(`${API}/api/get-orders`, {
+      credentials: "include"
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch orders");
+
+    const data = await res.json();
+
+    // ✅ Safety check
+    if (!data.success || !Array.isArray(data.orders)) {
+      toast("Invalid data from server", "error");
+      return;
+    }
+
+    // ✅ Find order
+    const order = data.orders.find(o => o.orderId === orderId);
+
+    if (!order) {
+      toast("Order not found", "error");
+      return;
+    }
+
+    // ✅ Safe items rendering
+    const itemsHTML = (order.cartItems || []).map(item => `
+      <li>${item.name} - ₹${parseInt(item.price.toString().replace("₹",""))}</li>
+    `).join("");
+
+    // ✅ Modal content
+    document.getElementById("orderDetails").innerHTML = `
+      <h2>Order Details</h2>
+
+      <p><strong>Order ID:</strong> ${order.orderId}</p>
+
+      <p><strong>Mode:</strong> ${order.mode || "-"}</p>
+      <p><strong>Status:</strong> ${order.status || "Order Placed"}</p>
+
+      <p><strong>Name:</strong> ${order.fname || ""} ${order.lname || ""}</p>
+      <p><strong>Phone:</strong> ${order.phone || "-"}</p>
+      <p><strong>Email:</strong> ${order.email || "-"}</p>
+
+      <p><strong>Address:</strong><br>
+        ${order.address || ""}, ${order.city || ""}, ${order.state || ""} - ${order.pincode || ""}
+      </p>
+
+      <h3>Items:</h3>
+      <ul>${itemsHTML}</ul>
+
+      <p><strong>Delivery:</strong> ₹${order.deliveryCharge || 0}</p>
+      <p><strong>GST:</strong> ₹${order.gst || 0}</p>
+      <p><strong>Total:</strong> ₹${order.grandTotal || 0}</p>
+    `;
+
+    document.getElementById("orderModal").style.display = "flex";
+
+  } catch (err) {
+    console.error("View Order Error:", err);
+    toast("Error loading order", "error");
+  }
+}
+
+function closeModal() {
+  document.getElementById("orderModal").style.display = "none";
+}
+function closeContactModal() {
+  document.getElementById("contactModal").style.display = "none";
+}
+
+/* ── CUSTOMERS ── */
+async function loadCustomers(){
+  const t=document.getElementById("customersTable");
+
+  try{
+    const res = await fetch(`${API}/api/get-customers`,{credentials:"include"});
+    if(!res.ok) throw new Error("Customers failed");
+
+    const data = await res.json();
+
+    if(!data.customers || data.customers.length===0){
+      t.innerHTML=`<tr><td colspan="5"><div class="empty-state">No customers</div></td></tr>`;
+      return;
+    }
+
+    t.innerHTML=data.customers.map((c,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td class="td-main">${c.fname} ${c.lname}</td>
+        <td>${c.phone}</td>
+        <td>${c.email}</td>
+        <td>${c.orderCount||0}</td>
+      </tr>
+    `).join('');
+
+  }catch(e){
+    console.error(e);
+    t.innerHTML=`<tr><td colspan="5"><div class="empty-state">Error loading customers</div></td></tr>`;
+  }
+}
+
+/* ── CONTACTS ── */
+async function loadContacts(){
+  const t = document.getElementById("contactTable");
+
+  t.innerHTML = `
+    <tr>
+      <td colspan="4">
+        <div class="empty-state">⏳ Loading...</div>
+      </td>
+    </tr>
+  `;
+
+  try{
+    const res = await fetch(`${API}/api/get-contacts`, {
+      credentials: "include"
+    });
+
+    if(!res.ok) throw new Error("Contacts failed");
+
+    const data = await res.json();
+
+    if(!data.success || !Array.isArray(data.contacts) || data.contacts.length === 0){
+      t.innerHTML = `
+        <tr>
+          <td colspan="4">
+            <div class="empty-state">📭 No messages</div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    t.innerHTML = data.contacts.map(c => {
+  const fullName = `${c.fname || ""} ${c.lname || ""}`.trim();
+
+  return `
+    <tr>
+      <td class="td-main">${fullName || "-"}</td>
+      <td>${c.email || "-"}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        ${c.message || "-"}
+      </td>
+      <td>
+        <button class="topbar-btn" onclick="viewContact('${c._id.toString()}')">
+          View →
+        </button>
+      </td>
+    </tr>
+  `;
+}).join('');
+
+  }catch(e){
+    console.error(e);
+
+    t.innerHTML = `
+      <tr>
+        <td colspan="4">
+          <div class="empty-state">❌ Error loading messages</div>
+        </td>
+      </tr>
+    `;
+  }
+}
+
+async function viewContact(id) {
+  try {
+    const res = await fetch(`${API}/api/get-contacts`, {
+      credentials: "include"
+    });
+
+    const data = await res.json();
+
+    if (!data.success || !Array.isArray(data.contacts)) {
+      toast("Invalid data", "error");
+      return;
+    }
+
+    const c = data.contacts.find(x => String(x._id) === id);
+
+    if (!c) {
+      toast("Message not found", "error");
+      return;
+    }
+
+    document.getElementById("contactDetails").innerHTML = `
+      <h2>Customer Message</h2>
+
+      <p><strong>Name:</strong> ${c.fname || ""} ${c.lname || ""}</p>
+      <p><strong>Email:</strong> ${c.email || "-"}</p>
+      <p><strong>Phone:</strong> ${c.phone || "-"}</p>
+      <p><strong>City:</strong> ${c.city || "-"}</p>
+      <p><strong>Order ID:</strong> ${c.orderid || "-"}</p>
+
+      <p><strong>Topic:</strong> ${c.topic || "-"}</p>
+      <p><strong>Subject:</strong> ${c.subject || "-"}</p>
+
+      <p><strong>Message:</strong><br>${c.message || "-"}</p>
+
+      <p><strong>Date:</strong> ${
+        c.createdAt ? new Date(c.createdAt).toLocaleString("en-IN") : "-"
+      }</p>
+    `;
+
+    document.getElementById("contactModal").style.display = "flex";
+
+  } catch (err) {
+    console.error(err);
+    toast("Error loading message", "error");
+  }
+}
+
+/* ── UPDATE STATUS ── */
+async function updateStatus(){
+  const id = document.getElementById("orderId").value.trim();
+  const status = document.getElementById("status").value;
+
+  if(!id){
+    toast("Enter Order ID","error");
+    return;
+  }
+
+  if(!id.startsWith("#RCM-")){
+    toast("Invalid Order ID format","error");
+    return;
+  }
+
+  try{
+    const res = await fetch(`${API}/api/update-status`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      credentials:"include",
+      body:JSON.stringify({orderId:id,status})
+    });
+
+    if(!res.ok) throw new Error("Update failed");
+
+    const data = await res.json();
+
+    if(data.success){
+      toast(`Order ${id} updated`);
+      loadOrders();
+      loadDashboard();
+    }else{
+      toast("Update failed","error");
+    }
+
+  }catch(e){
+    console.error(e);
+    toast("Server error","error");
+  }
+}
+
+/* ── AUTO REFRESH ── */
+setInterval(()=>{
+  if(currentSection==="dashboard") loadDashboard();
+},10000);
+
+/* INIT */
+loadDashboard();
+</script>
+
+
+<div id="orderModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeModal()">×</span>
+    <div id="orderDetails"></div>
+  </div>
+</div>
+
+<div id="contactModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeContactModal()">×</span>
+    <div id="contactDetails"></div>
+  </div>
+</div>
+
+</body>
+</html>

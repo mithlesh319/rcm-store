@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Track Order — RCM Store</title>
+  <link rel="icon" type="image/png" href="images/favicon.png"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --white: #ffffff;
+      --off-white: #f8f8f6;
+      --light-grey: #efefed;
+      --mid-grey: #d6d6d2;
+      --grey: #a8a8a2;
+      --dark-grey: #4a4a46;
+      --charcoal: #1e1e1c;
+      --accent-green: #4a7c59;
+      --accent-gold: #c9a84c;
+      --accent-red: #c0392b;
+      --shadow-sm: 0 2px 12px rgba(0,0,0,0.06);
+      --shadow-md: 0 8px 32px rgba(0,0,0,0.10);
+      --shadow-lg: 0 20px 60px rgba(0,0,0,0.14);
+      --radius: 16px;
+      --radius-sm: 8px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--off-white); color: var(--charcoal); overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--light-grey); }
+    ::-webkit-scrollbar-thumb { background: var(--mid-grey); border-radius: 3px; }
+
+    /* ANNOUNCEMENT */
+    .announcement { background: var(--charcoal); color: var(--white); text-align: center; padding: 10px 20px; font-size: 13px; letter-spacing: 0.04em; }
+    .announcement span { color: var(--accent-gold); font-weight: 600; }
+
+    /* NAV */
+    nav { background: var(--white); border-bottom: 1px solid var(--light-grey); position: sticky; top: 0; z-index: 1000; box-shadow: var(--shadow-sm); }
+    .nav-inner { max-width: 1300px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 72px; }
+    .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .logo-badge { width: 48px; height: 48px; background: var(--charcoal); border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+    .logo-badge::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, var(--accent-green) 0%, var(--charcoal) 100%); }
+    .logo-badge span { font-family: 'Playfair Display', serif; font-weight: 900; font-size: 18px; color: var(--white); position: relative; z-index: 1; }
+    .logo-text h1 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: var(--charcoal); line-height: 1; }
+    .logo-text p { font-size: 10px; color: var(--grey); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; margin-top: 2px; }
+    .nav-links { display: flex; gap: 36px; list-style: none; }
+    .nav-links a { text-decoration: none; color: var(--dark-grey); font-size: 14px; font-weight: 500; transition: color 0.2s; position: relative; }
+    .nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: var(--accent-green); transition: width 0.3s; border-radius: 1px; }
+    .nav-links a:hover, .nav-links a.active { color: var(--accent-green); }
+    .nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
+    .nav-btn { background: var(--charcoal); color: var(--white); border: none; border-radius: 50px; padding: 10px 22px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; transition: background 0.2s; }
+    .nav-btn:hover { background: var(--accent-green); }
+    .menu-toggle { display: none; font-size: 22px; background: none; border: none; cursor: pointer; }
+
+    /* PAGE HERO */
+    .page-hero { background: var(--white); border-bottom: 1px solid var(--light-grey); padding: 48px 32px; text-align: center; }
+    .page-hero h2 { font-family: 'Playfair Display', serif; font-size: 40px; font-weight: 900; color: var(--charcoal); margin-bottom: 10px; }
+    .page-hero h2 em { font-style: italic; color: var(--accent-green); }
+    .page-hero p { font-size: 15px; color: var(--grey); max-width: 480px; margin: 0 auto; line-height: 1.6; }
+
+    /* MAIN LAYOUT */
+    .main-wrap { max-width: 900px; margin: 0 auto; padding: 48px 24px 72px; }
+
+    /* SEARCH BOX */
+    .search-card { background: var(--white); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow-sm); border: 1px solid var(--light-grey); margin-bottom: 32px; }
+    .search-card h3 { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; margin-bottom: 18px; }
+    .search-row { display: flex; gap: 12px; align-items: stretch; }
+    .search-row input { flex: 1; padding: 14px 20px; border: 1.5px solid var(--light-grey); border-radius: 50px; font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--charcoal); outline: none; transition: border-color 0.2s; background: var(--off-white); }
+    .search-row input:focus { border-color: var(--accent-green); background: var(--white); }
+    .search-row input::placeholder { color: var(--grey); }
+    .track-btn { padding: 14px 28px; background: var(--charcoal); color: var(--white); border: none; border-radius: 50px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background 0.2s, transform 0.15s; }
+    .track-btn:hover { background: var(--accent-green); transform: translateY(-1px); }
+    .search-hint { margin-top: 12px; font-size: 12px; color: var(--grey); }
+    .search-hint span { color: var(--accent-green); font-weight: 600; cursor: pointer; }
+    .search-hint span:hover { text-decoration: underline; }
+
+    /* ERROR STATE */
+    .error-box { background: #fff5f5; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 14px 18px; font-size: 14px; color: var(--accent-red); display: none; margin-top: 14px; }
+
+    /* RESULT AREA */
+    #resultArea { display: none; animation: fadeUp 0.5s ease; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ORDER HEADER CARD */
+    .order-header-card { background: var(--white); border-radius: var(--radius); padding: 28px 28px 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--light-grey); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+    .order-id-section h4 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .order-id-section p { font-size: 13px; color: var(--grey); }
+    .status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 50px; font-size: 13px; font-weight: 700; }
+    .status-pill .dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; }
+    .status-processing { background: #fef3c7; color: #92400e; }
+    .status-processing .dot { background: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.2); }
+    .status-shipped { background: #dbeafe; color: #1e40af; }
+    .status-shipped .dot { background: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+    .status-out { background: #d1fae5; color: #065f46; }
+    .status-out .dot { background: var(--accent-green); box-shadow: 0 0 0 3px rgba(74,124,89,0.2); }
+    .status-delivered { background: #d1fae5; color: #065f46; }
+    .status-delivered .dot { background: var(--accent-green); animation: none; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.7; } }
+
+    .order-meta { display: flex; gap: 32px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--light-grey); flex-wrap: wrap; }
+    .meta-item { display: flex; flex-direction: column; gap: 3px; }
+    .meta-label { font-size: 11px; color: var(--grey); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+    .meta-value { font-size: 14px; font-weight: 600; color: var(--charcoal); }
+
+    /* TRACKING TIMELINE */
+    .tracking-card { background: var(--white); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-sm); border: 1px solid var(--light-grey); margin-bottom: 20px; }
+    .tracking-card h4 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; margin-bottom: 24px; }
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .timeline-item { display: flex; gap: 18px; position: relative; }
+    .timeline-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+    .timeline-icon { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; transition: all 0.3s; position: relative; z-index: 1; }
+    .icon-done { background: var(--accent-green); box-shadow: 0 0 0 4px rgba(74,124,89,0.12); }
+    .icon-active { background: var(--charcoal); box-shadow: 0 0 0 4px rgba(30,30,28,0.12); animation: activePulse 2s ease-in-out infinite; }
+    .icon-pending { background: var(--light-grey); }
+    @keyframes activePulse { 0%, 100% { box-shadow: 0 0 0 4px rgba(30,30,28,0.12); } 50% { box-shadow: 0 0 0 8px rgba(30,30,28,0.06); } }
+    .timeline-line { width: 2px; flex: 1; min-height: 36px; margin: 4px 0; border-radius: 1px; }
+    .line-done { background: var(--accent-green); }
+    .line-pending { background: var(--light-grey); }
+    .line-dashed { background: repeating-linear-gradient(to bottom, var(--mid-grey) 0, var(--mid-grey) 4px, transparent 4px, transparent 10px); }
+    .timeline-content { padding-bottom: 32px; flex: 1; }
+    .timeline-content:last-child { padding-bottom: 0; }
+    .timeline-title { font-size: 15px; font-weight: 600; color: var(--charcoal); margin-bottom: 4px; }
+    .timeline-title.pending { color: var(--grey); }
+    .timeline-desc { font-size: 13px; color: var(--grey); line-height: 1.5; margin-bottom: 6px; }
+    .timeline-time { font-size: 12px; color: var(--accent-green); font-weight: 600; }
+    .timeline-time.pending { color: var(--mid-grey); }
+
+    /* ETA CARD */
+    .eta-card { background: linear-gradient(135deg, var(--charcoal) 0%, #2e2e2c 100%); border-radius: var(--radius); padding: 24px 28px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+    .eta-left h4 { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--white); margin-bottom: 6px; }
+    .eta-left p { font-size: 13px; color: rgba(255,255,255,0.55); }
+    .eta-right { text-align: right; }
+    .eta-time { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: var(--accent-gold); line-height: 1; }
+    .eta-date { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+    .eta-live { display: inline-flex; align-items: center; gap: 6px; background: rgba(74,124,89,0.3); color: #6ee7a0; padding: 4px 12px; border-radius: 50px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 10px; }
+    .eta-live-dot { width: 6px; height: 6px; border-radius: 50%; background: #6ee7a0; animation: pulse 1.2s infinite; }
+
+    /* ORDER ITEMS CARD */
+    .items-card { background: var(--white); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-sm); border: 1px solid var(--light-grey); margin-bottom: 20px; }
+    .items-card h4 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+    .order-item-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--light-grey); }
+    .order-item-row:last-child { border-bottom: none; }
+    .item-emoji-box { width: 48px; height: 48px; background: var(--off-white); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; border: 1px solid var(--light-grey); }
+    .item-details { flex: 1; }
+    .item-name { font-size: 14px; font-weight: 600; color: var(--charcoal); }
+    .item-meta { font-size: 12px; color: var(--grey); margin-top: 2px; }
+    .item-price { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; color: var(--charcoal); }
+
+    /* DELIVERY CARD */
+    .delivery-card { background: var(--white); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-sm); border: 1px solid var(--light-grey); margin-bottom: 20px; }
+    .delivery-card h4 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+    .delivery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .delivery-info-box { background: var(--off-white); border-radius: var(--radius-sm); padding: 16px; border: 1px solid var(--light-grey); }
+    .delivery-info-box .box-label { font-size: 11px; color: var(--grey); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 8px; }
+    .delivery-info-box p { font-size: 14px; color: var(--charcoal); font-weight: 500; line-height: 1.5; }
+    .delivery-info-box .highlight { color: var(--accent-green); font-weight: 700; }
+
+    /* HELP ROW */
+    .help-row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .help-btn { flex: 1; min-width: 180px; padding: 14px 20px; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+    .help-btn-primary { background: var(--charcoal); color: var(--white); border: none; }
+    .help-btn-primary:hover { background: var(--accent-green); }
+    .help-btn-secondary { background: var(--white); color: var(--charcoal); border: 2px solid var(--mid-grey); }
+    .help-btn-secondary:hover { border-color: var(--charcoal); }
+
+    /* RECENT ORDERS QUICK LIST */
+    .recent-section { margin-top: 40px; }
+    .recent-section h3 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; margin-bottom: 16px; }
+    .recent-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow-sm); border: 1px solid var(--light-grey); overflow: hidden; }
+    .recent-row { display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--light-grey); cursor: pointer; transition: background 0.15s; }
+    .recent-row:last-child { border-bottom: none; }
+    .recent-row:hover { background: var(--off-white); }
+    .recent-row-left { display: flex; flex-direction: column; flex: 1; }
+    .recent-order-id { font-size: 14px; font-weight: 700; color: var(--charcoal); }
+    .recent-order-date { font-size: 12px; color: var(--grey); margin-top: 2px; }
+    .recent-amount { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; color: var(--charcoal); }
+    .recent-pill { padding: 4px 12px; border-radius: 50px; font-size: 11px; font-weight: 700; }
+    .pill-delivered { background: #d1fae5; color: #065f46; }
+    .pill-shipped { background: #dbeafe; color: #1e40af; }
+    .pill-processing { background: #fef3c7; color: #92400e; }
+    .recent-arrow { color: var(--grey); font-size: 18px; }
+
+    /* FOOTER */
+    footer { background: var(--charcoal); color: rgba(255,255,255,0.65); padding: 40px 32px 28px; margin-top: 80px; }
+    .footer-bottom { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: rgba(255,255,255,0.3); flex-wrap: wrap; gap: 12px; }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { color: rgba(255,255,255,0.4); text-decoration: none; font-size: 12px; transition: color 0.2s; }
+    .footer-links a:hover { color: rgba(255,255,255,0.8); }
+
+    /* LOADING SHIMMER */
+    .shimmer { background: linear-gradient(90deg, var(--light-grey) 25%, var(--mid-grey) 50%, var(--light-grey) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .loading-area { display: none; }
+    .load-row { height: 16px; margin-bottom: 10px; }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 32px; right: 32px; background: var(--charcoal); color: var(--white); padding: 14px 24px; border-radius: 12px; font-size: 14px; font-weight: 500; box-shadow: var(--shadow-lg); transform: translateY(80px); opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-links.open { display: flex; flex-direction: column; position: absolute; top: 72px; left: 0; width: 100%; background: var(--white); padding: 16px 24px; border-bottom: 1px solid var(--light-grey); z-index: 999; gap: 14px; }
+      .menu-toggle { display: block; }
+      .nav-inner { padding: 0 16px; }
+      .page-hero { padding: 36px 16px; }
+      .page-hero h2 { font-size: 28px; }
+      .main-wrap { padding: 28px 16px 56px; }
+      .search-row { flex-direction: column; }
+      .search-row input { border-radius: 12px; }
+      .track-btn { border-radius: 12px; }
+      .order-header-card { flex-direction: column; gap: 14px; }
+      .order-meta { gap: 16px; }
+      .delivery-grid { grid-template-columns: 1fr; }
+      .eta-card { flex-direction: column; text-align: center; }
+      .eta-right { text-align: center; }
+      .help-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="announcement">🚚 Free delivery on orders above <span>₹599</span> &nbsp;|&nbsp; Use code <span>RCM20</span> for 20% off on first order</div>
+
+<nav>
+  <div class="nav-inner">
+    <a class="logo" href="index.html">
+      <div class="logo-badge"><span>RCM</span></div>
+      <div class="logo-text"><h1>RCM Store</h1><p>Fresh. Pure. Trusted.</p></div>
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html#products">Products</a></li>
+      <li><a href="index.html#offers">Offers</a></li>
+      <li><a href="contact.html">Contact</a></li>
+      <li><a href="track-order.html" class="active">Track Order</a></li>
+    </ul>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <a href="index.html" class="nav-btn">🛍 Shop Now</a>
+  </div>
+</nav>
+
+<!-- PAGE HERO -->
+<div class="page-hero">
+  <h2>Track Your <em>Order</em></h2>
+  <p>Enter your order ID to get real-time updates on your RCM delivery</p>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-wrap">
+
+  <!-- SEARCH CARD -->
+  <div class="search-card">
+    <h3>🔍 Enter Order Details</h3>
+    <div class="search-row">
+      <input type="text" id="orderInput" placeholder="e.g. #RCM-2026-XK92B" maxlength="20" oninput="clearError()" onkeydown="if(event.key==='Enter') trackOrder()"/>
+      <button class="track-btn" onclick="trackOrder()">Track Order</button>
+    </div>
+    <div class="error-box" id="errorBox">❌ Order not found. Please check the ID and try again.</div>
+    <p class="search-hint">
+  Enter your Order ID (e.g. #RCM-2026-XXXXX)
+</p>
+  </div>
+
+  <!-- LOADING SHIMMER -->
+  <div class="loading-area" id="loadingArea">
+    <div class="shimmer load-row" style="width:60%;height:28px;margin-bottom:20px;"></div>
+    <div class="shimmer load-row" style="width:100%;height:120px;margin-bottom:16px;"></div>
+    <div class="shimmer load-row" style="width:100%;height:200px;margin-bottom:16px;"></div>
+  </div>
+
+  <!-- RESULT AREA -->
+  <div id="resultArea">
+
+    <!-- ORDER STATUS HEADER -->
+    <div class="order-header-card">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px;">
+          <div class="order-id-section">
+            <h4 id="resOrderId">#RCM-2026-XK92B</h4>
+            <p id="resOrderDate">Placed on 6 April, 2026 at 10:30 AM</p>
+          </div>
+          <div class="status-pill" id="statusPill">
+            <span class="dot"></span>
+            <span id="statusLabel">Out for Delivery</span>
+          </div>
+        </div>
+        <div class="order-meta">
+          <div class="meta-item">
+            <span class="meta-label">Items</span>
+            <span class="meta-value" id="resItems">3 Products</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Total Amount</span>
+            <span class="meta-value" id="resTotal">₹672</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Payment</span>
+            <span class="meta-value" id="resPayment">Online (UPI)</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Delivery Type</span>
+            <span class="meta-value" id="resDelivery">Express</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ETA BANNER -->
+    <div class="eta-card" id="etaCard">
+      <div class="eta-left">
+        <h4 id="etaTitle">Your order is on the way!</h4>
+        <p id="etaDesc">Our delivery partner is heading to your location</p>
+        <div class="eta-live"><span class="eta-live-dot"></span> Live Tracking Active</div>
+      </div>
+      <div class="eta-right">
+        <div class="eta-time" id="etaTime">~45 min</div>
+        <div class="eta-date" id="etaDateLine">Arriving Today, 6 April</div>
+      </div>
+    </div>
+
+    <!-- TRACKING TIMELINE -->
+    <div class="tracking-card">
+      <h4>📍 Order Timeline</h4>
+      <div class="timeline" id="timeline"></div>
+    </div>
+
+    <!-- ORDER ITEMS -->
+    <div class="items-card">
+      <h4>🛒 Items in This Order</h4>
+      <div id="orderItemsList"></div>
+    </div>
+
+    <!-- DELIVERY DETAILS -->
+    <div class="delivery-card">
+      <h4>🏠 Delivery Details</h4>
+      <div class="delivery-grid">
+        <div class="delivery-info-box">
+          <div class="box-label">Delivering To</div>
+          <p id="deliverTo">Rahul Sharma<br/>House No. 12, Sector 7<br/>Arang, Chhattisgarh — 493441</p>
+        </div>
+        <div class="delivery-info-box">
+          <div class="box-label">Delivery Partner</div>
+          <p>RCM Express<br/><span class="highlight">📞 Call Agent</span></p>
+        </div>
+        <div class="delivery-info-box">
+          <div class="box-label">Contact</div>
+          <p id="deliverContact">📞 +91 98765 43210<br/>📧 rahul@email.com</p>
+        </div>
+        <div class="delivery-info-box">
+          <div class="box-label">Instructions</div>
+          <p id="deliverInstructions">Ring the bell twice. Leave at door if not available.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- HELP ROW -->
+    <div class="help-row">
+      <button class="help-btn help-btn-secondary" onclick="showToast('Support team has been notified! We will contact you shortly.')">📞 Contact Support</button>
+      <button class="help-btn help-btn-secondary" onclick="showToast('Return request initiated. We will email you the process.')">↩️ Return / Refund</button>
+      <button class="help-btn help-btn-primary" onclick="window.location.href='index.html'">🛍 Continue Shopping</button>
+    </div>
+
+  </div>
+
+  <!-- RECENT ORDERS (always visible) -->
+  <div class="recent-section">
+    <h3>Recent Orders</h3>
+    <div class="recent-card">
+      <div class="recent-row" onclick="loadDemo('delivered')">
+        <div class="recent-row-left">
+          <span class="recent-order-id">#RCM-2026-XK92B</span>
+          <span class="recent-order-date">6 April 2026 &bull; 3 items</span>
+        </div>
+        <span class="recent-amount">₹672</span>
+        <span class="recent-pill pill-delivered">Delivered</span>
+        <span class="recent-arrow">›</span>
+      </div>
+      <div class="recent-row" onclick="loadDemo('shipped')">
+        <div class="recent-row-left">
+          <span class="recent-order-id">#RCM-2026-MB44T</span>
+          <span class="recent-order-date">4 April 2026 &bull; 2 items</span>
+        </div>
+        <span class="recent-amount">₹395</span>
+        <span class="recent-pill pill-shipped">Shipped</span>
+        <span class="recent-arrow">›</span>
+      </div>
+      <div class="recent-row" onclick="loadDemo('processing')">
+        <div class="recent-row-left">
+          <span class="recent-order-id">#RCM-2026-RT71K</span>
+          <span class="recent-order-date">6 April 2026 &bull; 5 items</span>
+        </div>
+        <span class="recent-amount">₹1,240</span>
+        <span class="recent-pill pill-processing">Processing</span>
+        <span class="recent-arrow">›</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-bottom">
+    <span>© 2026 RCM Store. All rights reserved.</span>
+    <div class="footer-links">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms</a>
+      <a href="contact.html">Contact</a>
+      <a href="#">FAQs</a>
+    </div>
+  </div>
+</footer>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+
+
+async function trackOrder() {
+  const id = document.getElementById("orderInput").value.trim();
+
+  if (!id) {
+    showError("Please enter Order ID");
+    return;
+  }
+
+  document.getElementById("loadingArea").style.display = "block";
+  document.getElementById("resultArea").style.display = "none";
+  clearError();
+
+  try {
+    const res = await fetch("/api/track-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ orderId: id })
+    });
+
+    const data = await res.json();
+
+    document.getElementById("loadingArea").style.display = "none";
+
+    if (!data.success) {
+      showError("Order not found");
+      return;
+    }
+
+    renderOrder(data.order);
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById("loadingArea").style.display = "none";
+    showError("Server error");
+  }
+}
+
+
+function renderOrder(order) {
+  document.getElementById('resOrderId').textContent = order.orderId;
+
+  document.getElementById('resOrderDate').textContent =
+    "Placed on " + new Date(order.createdAt).toLocaleString("en-IN");
+
+  document.getElementById('resItems').textContent =
+    (order.cartItems?.length || 0) + " Products";
+
+  document.getElementById('resTotal').textContent =
+    "₹" + (order.grandTotal || 0);
+
+  document.getElementById('resPayment').textContent =
+    order.mode || "-";
+
+  document.getElementById('resDelivery').textContent =
+    "Standard";
+
+  document.getElementById('statusLabel').textContent =
+    order.status || "Order Placed";
+
+  // STATUS STYLE
+  const pill = document.getElementById('statusPill');
+  pill.className = "status-pill";
+
+  if (order.status === "Delivered") pill.classList.add("status-delivered");
+  else if (order.status === "Out for Delivery") pill.classList.add("status-out");
+  else if (order.status === "Shipped") pill.classList.add("status-shipped");
+  else pill.classList.add("status-processing");
+
+  // DELIVERY INFO
+  document.getElementById('deliverTo').innerHTML =
+    `${order.fname} ${order.lname}<br/>
+     ${order.address}, ${order.city}, ${order.state} - ${order.pincode}`;
+
+  document.getElementById('deliverContact').innerHTML =
+    `📞 ${order.phone}<br/>📧 ${order.email}`;
+
+  document.getElementById('deliverInstructions').textContent =
+    order.instructions || "-";
+
+  // ITEMS
+  const il = document.getElementById('orderItemsList');
+  il.innerHTML = "";
+
+  (order.cartItems || []).forEach(item => {
+    il.innerHTML += `
+      <div class="order-item-row">
+        <div class="item-emoji-box">🛒</div>
+        <div class="item-details">
+          <div class="item-name">${item.name}</div>
+          <div class="item-meta">Qty: ${item.qty || 1}</div>
+        </div>
+        <div class="item-price">₹${item.price}</div>
+      </div>`;
+  });
+
+  // TIMELINE
+  const steps = [
+    "Order Placed",
+    "Packed",
+    "Shipped",
+    "Out for Delivery",
+    "Delivered"
+  ];
+
+  const currentIndex = steps.indexOf(order.status);
+
+  const tl = document.getElementById("timeline");
+  tl.innerHTML = "";
+
+  steps.forEach((step, i) => {
+    let style = "icon-pending";
+    if (i < currentIndex) style = "icon-done";
+    else if (i === currentIndex) style = "icon-active";
+
+    tl.innerHTML += `
+      <div class="timeline-item">
+        <div class="timeline-left">
+          <div class="timeline-icon ${style}">✔</div>
+          ${i < steps.length - 1 ? `<div class="timeline-line"></div>` : ""}
+        </div>
+        <div class="timeline-content">
+          <div class="timeline-title">${step}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById("resultArea").style.display = "block";
+}
+
+function showError(msg) {
+  const eb = document.getElementById('errorBox');
+  eb.textContent = '❌ ' + msg;
+  eb.style.display = 'block';
+}
+
+function clearError() {
+  document.getElementById('errorBox').style.display = 'none';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function toggleMenu() {
+  document.getElementById('navLinks').classList.toggle('open');
+}
+
+// Auto-load from URL param (?order=XXXX)
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const orderId = params.get('order');
+  if (orderId) {
+    document.getElementById('orderInput').value = orderId;
+    trackOrder();
+  }
+});
+</script>
+</body>
+</html>
