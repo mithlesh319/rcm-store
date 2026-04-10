@@ -1366,7 +1366,7 @@ function toast(msg,type='success'){
 /* ── DASHBOARD ── */
 async function loadDashboard(){
   try{
-    const res = await fetch(`${API}/api/dashboard`,{credentials:"include"});
+    const res = await fetch(`${API}/api?action=dashboard`,{credentials:"include"});
     if(!res.ok) throw new Error("Dashboard API failed");
 
     const data = await res.json();
@@ -1387,7 +1387,7 @@ async function loadDashboard(){
 
   /* RECENT ORDERS */
   try{
-    const res = await fetch(`${API}/api/get-orders`,{credentials:"include"});
+    const res = await fetch(`${API}/api?action=get-orders`,{credentials:"include"});
     if(!res.ok) throw new Error("Orders fetch failed");
 
     const data = await res.json();
@@ -1484,7 +1484,7 @@ async function loadOrders() {
 
 async function viewOrder(orderId) {
   try {
-    const res = await fetch(`${API}/api/get-orders`, {
+    const res = await fetch(`${API}/api?action=get-orders`, {
       credentials: "include"
     });
 
@@ -1648,7 +1648,7 @@ async function loadContacts(){
 
 async function viewContact(id) {
   try {
-    const res = await fetch(`${API}/api/get-contacts`, {
+    const res = await fetch(`${API}/api?action=get-contacts`, {
       credentials: "include"
     });
 
