@@ -431,7 +431,7 @@ async function trackOrder() {
   clearError();
 
   try {
-    const res = await fetch("/api/track-order", {
+    const res = await fetch("/api?action=track-order", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

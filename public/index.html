@@ -1844,7 +1844,7 @@ img {
   const amount = parseInt(grandTotalText.replace("₹", "")) * 100;
 
   // 1️⃣ Create order
-  const res = await fetch("/api/create-order", {
+  const res = await fetch("/api?action=create-order", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ amount }),
@@ -1858,7 +1858,7 @@ img {
   const order = await res.json();
 
   // 2️⃣ Get Razorpay key securely from backend
-  const keyRes = await fetch("/api/get-key");
+  const keyRes = await fetch("/api?action=get-key");
   const { key } = await keyRes.json();
 
   // 3️⃣ Open Razorpay checkout
@@ -1888,7 +1888,7 @@ img {
 }
 
   async function verifyPayment(paymentData) {
-    const res = await fetch("/api/verify-payment", {
+    const res = await fetch("/api?action=verify-payment", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(paymentData),
@@ -1956,7 +1956,7 @@ let dbSuccess = false;
 
   try {
     // ✅ SAVE TO DB ONLY
-    const dbRes = await fetch("/api/save-order", {
+    const dbRes = await fetch("/api?action=save-order", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -2053,7 +2053,7 @@ async function loginAdmin() {
   }
 
   try {
-    const res = await fetch("/api/admin-login", {
+    const res = await fetch("/api?action=admin-login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include", // 🔐 IMPORTANT (for session/cookies)
