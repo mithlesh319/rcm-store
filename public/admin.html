@@ -901,6 +901,310 @@
   font-size:20px;
   cursor:pointer;
 }
+
+/* ─── PRODUCTS SECTION ─── */
+.products-layout {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .products-layout { grid-template-columns: 1fr; }
+}
+
+.product-form-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 26px;
+  box-shadow: var(--shadow);
+}
+
+.product-form-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg3);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius2);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13.5px;
+  outline: none;
+  resize: vertical;
+  min-height: 88px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(45,45,255,0.08);
+  background: var(--bg2);
+}
+
+.image-upload-area {
+  width: 100%;
+  min-height: 140px;
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg3);
+  position: relative;
+  overflow: hidden;
+}
+
+.image-upload-area:hover {
+  border-color: var(--accent);
+  background: var(--accentbg);
+}
+
+.image-upload-area.has-image {
+  border-style: solid;
+  border-color: var(--border);
+}
+
+.image-upload-area input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.upload-icon { font-size: 28px; }
+.upload-label { font-size: 12.5px; color: var(--text3); font-family: var(--mono); }
+.upload-hint  { font-size: 11px; color: var(--text3); }
+
+.image-preview {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: var(--radius2);
+  display: none;
+}
+
+.image-preview.visible { display: block; }
+
+.upload-overlay-text {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text3);
+  background: var(--bg2);
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+/* product grid */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.product-tile {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.2s, transform 0.2s;
+  cursor: default;
+}
+
+.product-tile:hover {
+  box-shadow: var(--shadow2);
+  transform: translateY(-2px);
+}
+
+.product-tile-img {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: var(--text3);
+}
+
+.product-tile-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-tile-body {
+  padding: 12px 14px 14px;
+}
+
+.product-tile-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-tile-cat {
+  font-size: 10.5px;
+  font-family: var(--mono);
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+
+.product-tile-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent2);
+  font-family: var(--display);
+  font-style: italic;
+}
+
+.product-tile-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.product-tile-stock {
+  font-size: 10.5px;
+  font-family: var(--mono);
+  color: var(--text3);
+}
+
+.product-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  transition: all 0.15s;
+}
+
+.product-delete-btn:hover {
+  background: var(--redbg);
+  color: var(--red);
+}
+
+.products-right-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.products-right-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.products-count-badge {
+  font-size: 10.5px;
+  font-family: var(--mono);
+  background: var(--bg4);
+  color: var(--text3);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.tag-input-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg3);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius2);
+  min-height: 44px;
+  cursor: text;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.tag-input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(45,45,255,0.08);
+  background: var(--bg2);
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--accentbg);
+  color: var(--accent2);
+  border: 1px solid rgba(45,45,255,0.15);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-family: var(--mono);
+}
+
+.tag-pill button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--accent2);
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 1px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.tag-pill button:hover { opacity: 1; }
+
+.tag-input-wrap input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  min-width: 80px;
+  flex: 1;
+}
+
+.stock-badge-in  { background: var(--greenbg); color: var(--green); }
+.stock-badge-out { background: var(--redbg); color: var(--red); }
 </style>
 </head>
 <body>
@@ -939,6 +1243,10 @@
       <span class="nav-icon">✉</span> Messages
       <span class="nav-badge" id="navMsgBadge">—</span>
     </div>
+    <div class="nav-item" onclick="showSection('products',this)">
+      <span class="nav-icon">◈</span> Products
+      <span class="nav-badge" id="navProductBadge">—</span>
+    </div>
 
     <div class="nav-separator"></div>
 
@@ -947,13 +1255,10 @@
       <span class="nav-icon">◈</span> Analytics
     </div>
     <div class="nav-item" style="opacity:0.35;cursor:default;">
-      <span class="nav-icon">⊗</span> Products
+      <span class="nav-icon">⊗</span> Reports
     </div>
     <div class="nav-item" style="opacity:0.35;cursor:default;">
-      <span class="nav-icon">◷</span> Reports
-    </div>
-    <div class="nav-item" style="opacity:0.35;cursor:default;">
-      <span class="nav-icon">⊙</span> Settings
+      <span class="nav-icon">◷</span> Settings
     </div>
   </nav>
 
@@ -1251,6 +1556,105 @@
       </div>
     </div>
 
+    <!-- ── PRODUCTS ── -->
+    <div id="products" class="section">
+      <div class="products-layout">
+
+        <!-- LEFT: Add Product Form -->
+        <div class="product-form-card">
+          <h3>◈ Add New Product</h3>
+
+          <!-- Image Upload -->
+          <div class="form-group">
+            <label class="form-label">Product Image</label>
+            <div class="image-upload-area" id="uploadArea">
+              <input type="file" accept="image/*" id="productImageFile" onchange="handleImageSelect(event)">
+              <img class="image-preview" id="imagePreview" src="" alt="Preview">
+              <div id="uploadPlaceholder">
+                <div style="text-align:center;pointer-events:none;">
+                  <div class="upload-icon">🖼</div>
+                  <div class="upload-label">Click or drag to upload</div>
+                  <div class="upload-hint">JPG, PNG, WEBP — max 5 MB</div>
+                </div>
+              </div>
+              <div class="upload-overlay-text" id="uploadOverlayText" style="display:none;">Change image</div>
+            </div>
+          </div>
+
+          <!-- Name & Category -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Product Name</label>
+              <input class="form-input" type="text" id="prodName" placeholder="e.g. Wireless Earbuds">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <input class="form-input" type="text" id="prodCategory" placeholder="e.g. Electronics">
+            </div>
+          </div>
+
+          <!-- Price & MRP -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Selling Price (₹)</label>
+              <input class="form-input" type="number" id="prodPrice" placeholder="0.00" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">MRP (₹)</label>
+              <input class="form-input" type="number" id="prodMrp" placeholder="0.00" min="0">
+            </div>
+          </div>
+
+          <!-- Stock & SKU -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Stock Qty</label>
+              <input class="form-input" type="number" id="prodStock" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">SKU / Code</label>
+              <input class="form-input" type="text" id="prodSku" placeholder="e.g. SKU-001">
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-textarea" id="prodDesc" placeholder="Short product description…"></textarea>
+          </div>
+
+          <!-- Tags -->
+          <div class="form-group">
+            <label class="form-label">Tags</label>
+            <div class="tag-input-wrap" id="tagWrap" onclick="document.getElementById('tagInput').focus()">
+              <input type="text" id="tagInput" placeholder="Type tag & press Enter…" onkeydown="handleTagInput(event)">
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <button class="btn-primary" onclick="submitProduct()">＋ &nbsp;Add Product</button>
+        </div>
+
+        <!-- RIGHT: Product Grid -->
+        <div>
+          <div class="products-right-header">
+            <span class="products-right-title">Product Catalogue</span>
+            <span class="products-count-badge" id="productCountBadge">0 products</span>
+          </div>
+          <div class="product-grid" id="productGrid">
+            <div style="grid-column:1/-1;">
+              <div class="empty-state">
+                <div class="empty-icon">📦</div>
+                <p>No products added yet.<br>Fill the form to get started.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- ── END PRODUCTS ── -->
+
   </div>
 </div>
 
@@ -1313,7 +1717,8 @@ function showSection(id,el){
     orders:"Orders",
     customers:"Customers",
     tracking:"Tracking",
-    contacts:"Contact Messages"
+    contacts:"Contact Messages",
+    products:"Products"
   };
 
   document.getElementById('pageTitle').textContent=titles[id]||id;
@@ -1323,6 +1728,7 @@ function showSection(id,el){
   if(id==='customers') loadCustomers();
   if(id==='contacts') loadContacts();
   if(id==='dashboard') loadDashboard();
+  if(id==='products') renderProductGrid();
 }
 
 function refreshCurrent(){
@@ -1741,6 +2147,245 @@ setInterval(()=>{
 
 /* INIT */
 loadDashboard();
+
+/* ═══════════════════════════════════════════════
+   PRODUCTS — local state + API submit
+═══════════════════════════════════════════════ */
+
+let productList = [];
+let productTags = [];
+let productImageBase64 = null;
+
+/* -- Image upload handler -- */
+function handleImageSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 5 * 1024 * 1024) {
+    toast("Image must be under 5 MB", "error");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    productImageBase64 = e.target.result;
+
+    const preview = document.getElementById("imagePreview");
+    const placeholder = document.getElementById("uploadPlaceholder");
+    const overlayText = document.getElementById("uploadOverlayText");
+    const uploadArea = document.getElementById("uploadArea");
+
+    preview.src = productImageBase64;
+    preview.classList.add("visible");
+    placeholder.style.display = "none";
+    overlayText.style.display = "block";
+    uploadArea.classList.add("has-image");
+  };
+  reader.readAsDataURL(file);
+}
+
+/* -- Tag input handler -- */
+function handleTagInput(e) {
+  if (e.key === "Enter" || e.key === ",") {
+    e.preventDefault();
+    const val = e.target.value.trim().replace(/,/g, "");
+    if (val && !productTags.includes(val)) {
+      productTags.push(val);
+      renderTags();
+    }
+    e.target.value = "";
+  } else if (e.key === "Backspace" && e.target.value === "" && productTags.length > 0) {
+    productTags.pop();
+    renderTags();
+  }
+}
+
+function removeTag(tag) {
+  productTags = productTags.filter(t => t !== tag);
+  renderTags();
+}
+
+function renderTags() {
+  const wrap = document.getElementById("tagWrap");
+  const input = document.getElementById("tagInput");
+  wrap.innerHTML = "";
+  productTags.forEach(tag => {
+    const pill = document.createElement("span");
+    pill.className = "tag-pill";
+    pill.innerHTML = `${tag}<button type="button" onclick="removeTag('${tag}')">×</button>`;
+    wrap.appendChild(pill);
+  });
+  wrap.appendChild(input);
+  input.focus();
+}
+
+/* -- Submit product -- */
+async function submitProduct() {
+  const name     = document.getElementById("prodName").value.trim();
+  const category = document.getElementById("prodCategory").value.trim();
+  const price    = parseFloat(document.getElementById("prodPrice").value) || 0;
+  const mrp      = parseFloat(document.getElementById("prodMrp").value) || 0;
+  const stock    = parseInt(document.getElementById("prodStock").value) || 0;
+  const sku      = document.getElementById("prodSku").value.trim();
+  const desc     = document.getElementById("prodDesc").value.trim();
+
+  if (!name) { toast("Product name is required", "error"); return; }
+  if (!price) { toast("Selling price is required", "error"); return; }
+
+  const payload = {
+    name, category, price, mrp, stock, sku, desc,
+    tags: productTags,
+    image: productImageBase64 || null
+  };
+
+  /* Try to POST to backend — gracefully falls back to local preview */
+  try {
+    const res = await fetch(`${API}/api?action=add-product`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success) {
+        toast("Product added successfully");
+        if (data.product) {
+          productList.unshift(data.product);
+        } else {
+          productList.unshift({ ...payload, _id: Date.now().toString() });
+        }
+        resetProductForm();
+        renderProductGrid();
+        updateNavProductBadge();
+        return;
+      }
+    }
+    /* If API not available yet, add locally for preview */
+    throw new Error("API not ready");
+  } catch (err) {
+    /* Graceful local fallback — useful during development */
+    productList.unshift({ ...payload, _id: Date.now().toString() });
+    toast("Product saved (local preview — connect API to persist)");
+    resetProductForm();
+    renderProductGrid();
+    updateNavProductBadge();
+  }
+}
+
+function resetProductForm() {
+  document.getElementById("prodName").value = "";
+  document.getElementById("prodCategory").value = "";
+  document.getElementById("prodPrice").value = "";
+  document.getElementById("prodMrp").value = "";
+  document.getElementById("prodStock").value = "";
+  document.getElementById("prodSku").value = "";
+  document.getElementById("prodDesc").value = "";
+
+  productTags = [];
+  productImageBase64 = null;
+
+  const preview = document.getElementById("imagePreview");
+  const placeholder = document.getElementById("uploadPlaceholder");
+  const overlayText = document.getElementById("uploadOverlayText");
+  const uploadArea = document.getElementById("uploadArea");
+
+  preview.src = "";
+  preview.classList.remove("visible");
+  placeholder.style.display = "";
+  overlayText.style.display = "none";
+  uploadArea.classList.remove("has-image");
+
+  document.getElementById("productImageFile").value = "";
+
+  renderTags();
+}
+
+function deleteProduct(id) {
+  productList = productList.filter(p => p._id !== id);
+  renderProductGrid();
+  updateNavProductBadge();
+  toast("Product removed");
+
+  /* Optionally call API */
+  fetch(`${API}/api?action=delete-product`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ id })
+  }).catch(() => {});
+}
+
+function renderProductGrid() {
+  const grid = document.getElementById("productGrid");
+  const badge = document.getElementById("productCountBadge");
+
+  badge.textContent = `${productList.length} product${productList.length !== 1 ? "s" : ""}`;
+
+  if (productList.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;">
+        <div class="empty-state">
+          <div class="empty-icon">📦</div>
+          <p>No products added yet.<br>Fill the form to get started.</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = productList.map(p => {
+    const inStock = (p.stock || 0) > 0;
+    const discount = p.mrp && p.price && p.mrp > p.price
+      ? Math.round(((p.mrp - p.price) / p.mrp) * 100)
+      : 0;
+
+    const imgHTML = p.image
+      ? `<img src="${p.image}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;">`
+      : `<span style="font-size:32px;color:var(--text3);">🖼</span>`;
+
+    return `
+      <div class="product-tile">
+        <div class="product-tile-img">${imgHTML}</div>
+        <div class="product-tile-body">
+          <div class="product-tile-name" title="${p.name}">${p.name}</div>
+          <div class="product-tile-cat">${p.category || "—"}</div>
+          <div class="product-tile-price">₹${Number(p.price).toLocaleString("en-IN")}</div>
+          ${p.mrp && p.mrp > p.price ? `<div style="font-size:11px;color:var(--text3);text-decoration:line-through;margin-top:2px;">₹${Number(p.mrp).toLocaleString("en-IN")}</div>` : ""}
+          ${discount ? `<span class="badge trend-up" style="margin-top:4px;font-size:10px;">${discount}% off</span>` : ""}
+          <div class="product-tile-footer">
+            <span class="badge ${inStock ? "stock-badge-in s-delivered" : "stock-badge-out s-placed"}" style="font-size:10px;padding:2px 8px;">
+              <span class="badge-dot"></span>
+              ${inStock ? `${p.stock} in stock` : "Out of stock"}
+            </span>
+            <button class="product-delete-btn" onclick="deleteProduct('${p._id}')" title="Remove product">✕</button>
+          </div>
+          ${p.sku ? `<div style="font-size:10px;font-family:var(--mono);color:var(--text3);margin-top:6px;">${p.sku}</div>` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function updateNavProductBadge() {
+  document.getElementById("navProductBadge").textContent = productList.length || "—";
+}
+
+/* Load products from API on init */
+(async function loadProductsFromAPI() {
+  try {
+    const res = await fetch(`${API}/api?action=get-products`, { credentials: "include" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.success && Array.isArray(data.products)) {
+      productList = data.products;
+      updateNavProductBadge();
+    }
+  } catch (e) {
+    /* API not available yet — silent fail */
+  }
+})();
 </script>
 
 
