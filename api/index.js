@@ -282,6 +282,86 @@ export default async function handler(req, res) {
       });
     }
 
+    // 📦 GET PRODUCTS
+else if (action === "get-products") {
+  if (req.method !== "GET") {
+    return res.status(405).json({
+      success: false,
+      message: "Only GET allowed",
+    });
+  }
+
+  const products = await db.collection("products").find({}).toArray();
+
+const formatted = products.map(p => ({
+  ...p,
+  _id: p._id.toString()
+}));
+
+return res.status(200).json({
+  success: true,
+  products: formatted,
+});
+}
+
+// ➕ ADD PRODUCT (ADMIN)
+else if (action === "add-product") {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      success: false,
+      message: "Only POST allowed",
+    });
+  }
+
+  // 🔐 CHECK ADMIN COOKIE
+  const cookies = req.headers.cookie || "";
+  if (!cookies.includes("admin=true")) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
+
+  await db.collection("products").insertOne({
+    ...body,
+    createdAt: new Date(),
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Product added",
+  });
+}
+
+// ❌ DELETE PRODUCT (ADMIN)
+else if (action === "delete-product") {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      success: false,
+      message: "Only POST allowed",
+    });
+  }
+
+  const cookies = req.headers.cookie || "";
+  if (!cookies.includes("admin=true")) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
+
+  const { id } = body || {};
+
+  await db.collection("products").deleteOne({
+    _id: new (require("mongodb").ObjectId)(id),
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Product deleted",
+  });
+}
+
     // ❌ DEFAULT
     else {
       return res.status(404).json({ message: "Invalid API route" });
