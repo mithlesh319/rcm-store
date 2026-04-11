@@ -2107,7 +2107,7 @@ async function viewContact(id) {
 
 /* ── UPDATE STATUS ── */
 async function updateStatus(){
-  const id = document.getElementById("orderId").value.trim();
+  const id = document.getElementById("orderId").value.trim().toUpperCase();
   const status = document.getElementById("status").value;
 
   if(!id){
@@ -2115,10 +2115,10 @@ async function updateStatus(){
     return;
   }
 
-  if(!id.startsWith("rcm-")){
-    toast("Invalid Order ID format","error");
-    return;
-  }
+  if (!id.startsWith("#RCM-")) {
+  toast("Invalid Order ID format", "error");
+  return;
+}
 
   try{
     const res = await fetch(`${API}/api?action=update-status`,{

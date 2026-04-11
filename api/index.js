@@ -360,7 +360,7 @@ else if (action === "update-status") {
       });
     }
 
-    // 📦 GET ORDERS
+    // 📦 GET ORDERS (ADMIN ONLY)
 else if (action === "get-orders") {
   if (req.method !== "GET") {
     return res.status(405).json({
@@ -369,7 +369,7 @@ else if (action === "get-orders") {
     });
   }
 
-  // 🔐 ADMIN CHECK (IMPORTANT FIX)
+  // 🔐 ADMIN CHECK
   if (!isAdmin(req)) {
     return res.status(401).json({
       success: false,
@@ -384,9 +384,16 @@ else if (action === "get-orders") {
       .sort({ createdAt: -1 })
       .toArray();
 
+    // ✅ FIX: make _id frontend-safe + ensure consistent format
+    const safeOrders = orders.map(o => ({
+      ...o,
+      _id: o._id?.toString(),
+      orderId: o.orderId?.trim()?.toUpperCase(),
+    }));
+
     return res.status(200).json({
       success: true,
-      orders,
+      orders: safeOrders,
     });
 
   } catch (err) {
@@ -397,7 +404,6 @@ else if (action === "get-orders") {
     });
   }
 }
-
 
 // ➕ ADD PRODUCT
 else if (action === "add-product") {
