@@ -723,6 +723,36 @@ else if (action === "get-customers") {
   }
 }
 
+// 📦 GET PRODUCTS (PUBLIC)
+else if (action === "get-products") {
+  if (req.method !== "GET") {
+    return res.status(405).json({
+      success: false,
+      message: "Method not allowed",
+    });
+  }
+
+  try {
+    const products = await db
+      .collection("products")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    return res.status(200).json({
+      success: true,
+      products,
+    });
+
+  } catch (err) {
+    console.error("Get Products Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
 
 
     // ❌ DEFAULT
