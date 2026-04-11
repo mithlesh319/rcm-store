@@ -1582,54 +1582,63 @@
           </div>
 
           <!-- Name & Category -->
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Product Name</label>
-              <input class="form-input" type="text" id="prodName" placeholder="e.g. Wireless Earbuds">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Category</label>
-              <input class="form-input" type="text" id="prodCategory" placeholder="e.g. Electronics">
-            </div>
-          </div>
+<div class="form-row">
+  <div class="form-group">
+    <label class="form-label">Product Name</label>
+    <input class="form-input" type="text" id="prodName" placeholder="e.g. Wireless Earbuds">
+  </div>
 
-          <!-- Price & MRP -->
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Selling Price (₹)</label>
-              <input class="form-input" type="number" id="prodPrice" placeholder="0.00" min="0">
-            </div>
-            <div class="form-group">
-              <label class="form-label">MRP (₹)</label>
-              <input class="form-input" type="number" id="prodMrp" placeholder="0.00" min="0">
-            </div>
-          </div>
+  <div class="form-group">
+    <label class="form-label">Category</label>
+    <input class="form-input" type="text" id="prodCategory" placeholder="e.g. Electronics">
+  </div>
+</div>
 
-          <!-- Stock & SKU -->
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Stock Qty</label>
-              <input class="form-input" type="number" id="prodStock" placeholder="0" min="0">
-            </div>
-            <div class="form-group">
-              <label class="form-label">SKU / Code</label>
-              <input class="form-input" type="text" id="prodSku" placeholder="e.g. SKU-001">
-            </div>
-          </div>
+<!-- Price & MRP -->
+<div class="form-row">
+  <div class="form-group">
+    <label class="form-label">Selling Price (₹)</label>
+    <input class="form-input" type="number" id="prodPrice" placeholder="0.00" min="0">
+  </div>
 
-          <!-- Description -->
-          <div class="form-group">
-            <label class="form-label">Description</label>
-            <textarea class="form-textarea" id="prodDesc" placeholder="Short product description…"></textarea>
-          </div>
+  <div class="form-group">
+    <label class="form-label">MRP (₹)</label>
+    <input class="form-input" type="number" id="prodMrp" placeholder="0.00" min="0">
+  </div>
+</div>
 
-          <!-- Tags -->
-          <div class="form-group">
-            <label class="form-label">Tags</label>
-            <div class="tag-input-wrap" id="tagWrap" onclick="document.getElementById('tagInput').focus()">
-              <input type="text" id="tagInput" placeholder="Type tag & press Enter…" onkeydown="handleTagInput(event)">
-            </div>
-          </div>
+<!-- Stock & SKU -->
+<div class="form-row">
+  <div class="form-group">
+    <label class="form-label">Stock Qty</label>
+    <input class="form-input" type="number" id="prodStock" placeholder="0" min="0">
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">SKU / Code</label>
+    <input class="form-input" type="text" id="prodSku" placeholder="e.g. SKU-001">
+  </div>
+</div>
+
+<!-- ✅ VARIANT (ADDED HERE) -->
+<div class="form-group">
+  <label class="form-label">Product Variant (Size / Weight)</label>
+  <input class="form-input" type="text" id="prodVariant" placeholder="e.g. 75g Pack, 1kg, 500ml">
+</div>
+
+<!-- Description -->
+<div class="form-group">
+  <label class="form-label">Description</label>
+  <textarea class="form-textarea" id="prodDesc" placeholder="Short product description…"></textarea>
+</div>
+
+<!-- Tags -->
+<div class="form-group">
+  <label class="form-label">Tags</label>
+  <div class="tag-input-wrap" id="tagWrap" onclick="document.getElementById('tagInput').focus()">
+    <input type="text" id="tagInput" placeholder="Type tag & press Enter…" onkeydown="handleTagInput(event)">
+  </div>
+</div>
 
           <!-- Submit -->
           <button class="btn-primary" onclick="submitProduct()">＋ &nbsp;Add Product</button>
@@ -2235,15 +2244,18 @@ async function submitProduct() {
   const sku = document.getElementById("prodSku").value.trim();
   const desc = document.getElementById("prodDesc").value.trim();
 
+  // ✅ NEW FIELD (ADD HERE)
+  const variant = document.getElementById("prodVariant").value.trim();
+
   // ✅ VALIDATION
   if (!name) return toast("Product name is required", "error");
   if (price <= 0) return toast("Valid price is required", "error");
 
-  // ⚠️ IMAGE SIZE CHECK (important for Cloudinary + API speed)
   if (productImageBase64 && productImageBase64.length > 2_000_000) {
     return toast("Image too large. Please use smaller image", "error");
   }
 
+  // ✅ UPDATED PAYLOAD (ADD variant HERE)
   const payload = {
     name,
     category,
@@ -2252,6 +2264,7 @@ async function submitProduct() {
     stock,
     sku,
     desc,
+    variant,   // 🔥 ADD THIS LINE
     tags: productTags || [],
     image: productImageBase64 || null,
   };
@@ -2262,24 +2275,21 @@ async function submitProduct() {
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include", // ✅ IMPORTANT for admin cookie
+      credentials: "include",
       body: JSON.stringify(payload),
     });
 
     const data = await res.json().catch(() => ({}));
 
-    // ❌ Unauthorized handling
     if (res.status === 401) {
       toast("Admin login required", "error");
       return;
     }
 
-    // ❌ API error
     if (!res.ok || !data.success) {
       throw new Error(data.message || "Failed to add product");
     }
 
-    // ✅ SUCCESS
     toast("Product added successfully");
 
     productList.unshift(data.product || {
@@ -2294,7 +2304,6 @@ async function submitProduct() {
   } catch (err) {
     console.error("Add Product Error:", err);
 
-    // ⚠️ fallback (only for dev mode)
     productList.unshift({
       ...payload,
       _id: Date.now().toString(),

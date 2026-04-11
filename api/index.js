@@ -437,6 +437,7 @@ else if (action === "add-product") {
       imageUrl = uploadRes.secure_url;
     }
 
+    // ✅ PRODUCT DATA (UPDATED WITH VARIANT)
     const productData = {
       name: body.name || "",
       category: body.category || "",
@@ -445,6 +446,10 @@ else if (action === "add-product") {
       stock: Number(body.stock || 0),
       sku: body.sku || "",
       desc: body.desc || "",
+
+      // 🔥 ADD THIS LINE (IMPORTANT FIX)
+      variant: body.variant || "",
+
       tags: Array.isArray(body.tags) ? body.tags : [],
       image: imageUrl,
       createdAt: new Date(),
