@@ -1228,7 +1228,12 @@ img {
 
 <script>
   let cart = [];
-  // 🔥 LOAD PRODUCTS FROM MONGODB
+let cartOpen = false;
+let billingStep = 1;
+let deliveryCharge = 0;
+let discountApplied = 0;
+
+// 🔥 LOAD PRODUCTS FROM MONGODB
 async function loadProducts() {
   try {
     const res = await fetch("/api?action=get-products", {
@@ -1249,7 +1254,7 @@ async function loadProducts() {
       const name = p.name || "Product";
       const category = p.category || "";
       const image = p.image || "";
-      const price = p.price || 0;
+      const price = Number(p.price || 0);
       const rating = p.rating || 4;
       const weight = p.weight || "";
 
@@ -1275,8 +1280,9 @@ async function loadProducts() {
                 <span class="price-current">₹${price}</span>
               </div>
 
+              <!-- ✅ FIXED BUTTON -->
               <button class="add-btn"
-                onclick="addToCart(${JSON.stringify(name)}, '₹${price}')">
+                onclick="addToCart('${name.replace(/'/g, "\\'")}', ${price})">
                 +
               </button>
             </div>
@@ -1289,165 +1295,186 @@ async function loadProducts() {
     console.error("❌ Error loading products:", err);
   }
 }
+// ================= CART TOGGLE =================
+function toggleCart() {
+  cartOpen = !cartOpen;
 
-let cartOpen = false;
-let billingStep = 1;
-let deliveryCharge = 0;
-let discountApplied = 0;
+  document.getElementById("cartOverlay").classList.toggle("open", cartOpen);
+  document.getElementById("cartSidebar").classList.toggle("open", cartOpen);
+}
 
-  function toggleCart() {
-    cartOpen = !cartOpen;
-    document.getElementById("cartOverlay").classList.toggle("open", cartOpen);
-    document.getElementById("cartSidebar").classList.toggle("open", cartOpen);
+function addToCart(name, price) {
+  const cleanPrice = Number(String(price).replace(/[^\d]/g, ""));
+
+  cart.push({
+    id: Date.now(),
+    name,
+    price: cleanPrice
+  });
+
+  updateCart();
+  showToast(name + " added to cart!");
+}
+
+// ================= REMOVE =================
+function removeFromCart(id) {
+  const cleanId = Number(id);
+
+  cart = cart.filter(item => item.id !== cleanId);
+  updateCart();
+}
+
+// ================= UPDATE CART UI =================
+function updateCart() {
+  const count = cart.length;
+  document.getElementById("cartCount").textContent = count;
+
+  const list = document.getElementById("cartItemsList");
+  const empty = document.getElementById("cartEmpty");
+
+  list.innerHTML = "";
+
+  if (count === 0) {
+    empty.style.display = "flex";
+    document.getElementById("cartTotal").textContent = "₹0";
+    return;
   }
 
-  function addToCart(name, price) {
-    cart.push({ name, price, id: Date.now() });
+  empty.style.display = "none";
+
+  let total = 0;
+
+  cart.forEach(item => {
+    total += item.price;
+
+    const div = document.createElement("div");
+    div.className = "cart-item";
+
+    div.innerHTML = `
+      <div class="cart-item-emoji">🛒</div>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-price">₹${item.price}</div>
+      </div>
+      <button class="cart-remove" onclick="removeFromCart(${item.id})">✕</button>
+    `;
+
+    list.appendChild(div);
+  });
+
+  document.getElementById("cartTotal").textContent = "₹" + total;
+}
+// ================= OPEN BILLING =================
+function openBilling() {
+  if (!cart.length) {
+    showToast("Your cart is empty! Add some products first.");
+    return;
+  }
+
+  if (cartOpen) toggleCart();
+
+  billingStep = 1;
+  discountApplied = 0;
+  deliveryCharge = 0;
+
+  document.getElementById("couponMsg").classList.remove("show");
+  document.getElementById("couponInput").value = "";
+  document.getElementById("discount-row").style.display = "none";
+
+  updateBillingUI();
+  updateBillingSummary();
+
+  document.getElementById("billingOverlay").classList.add("open");
+}
+
+// ================= CLOSE BILLING =================
+function closeBilling() {
+  document.getElementById("billingOverlay").classList.remove("open");
+
+  if (billingStep === 3) {
+    cart = [];
     updateCart();
-    showToast(name + " added to cart!");
   }
+}
 
-  function removeFromCart(id) {
-    cart = cart.filter((i) => i.id !== id);
-    updateCart();
+// ================= BILLING UI =================
+function updateBillingUI() {
+  document.querySelectorAll(".billing-panel").forEach(p =>
+    p.classList.remove("active")
+  );
+
+  document.getElementById("billing-step-" + billingStep)
+    .classList.add("active");
+
+  document.querySelectorAll(".billing-step").forEach((s, i) => {
+    s.classList.remove("active", "done");
+
+    if (i + 1 === billingStep) s.classList.add("active");
+    else if (i + 1 < billingStep) s.classList.add("done");
+  });
+
+  const nav = document.getElementById("billingNav");
+  const back = document.getElementById("billingBackBtn");
+  const next = document.getElementById("billingNextBtn");
+
+  nav.style.display = billingStep === 3 ? "none" : "flex";
+  back.style.visibility = billingStep > 1 ? "visible" : "hidden";
+  next.textContent = billingStep === 2
+    ? "🔒 Pay & Place Order"
+    : "Continue →";
+}
+
+// ================= BILLING SUMMARY (FIXED) =================
+function updateBillingSummary() {
+  const itemsEl = document.getElementById("billingSummaryItems");
+  itemsEl.innerHTML = "";
+
+  let subtotal = 0;
+
+  cart.forEach(item => {
+    subtotal += item.price;
+
+    itemsEl.innerHTML += `
+      <div class="summary-item">
+        <span class="summary-item-name">${item.name}</span>
+        <span class="summary-item-price">₹${item.price}</span>
+      </div>
+    `;
+  });
+
+  const gst = Math.round(subtotal * 0.18);
+  const grand = subtotal + deliveryCharge + gst - discountApplied;
+
+  document.getElementById("billing-subtotal").textContent = "₹" + subtotal;
+  document.getElementById("billing-delivery").textContent =
+    deliveryCharge === 0 ? "FREE" : "₹" + deliveryCharge;
+
+  document.getElementById("billing-gst").textContent = "₹" + gst;
+  document.getElementById("billing-grand-total").textContent = "₹" + grand;
+
+  if (discountApplied > 0) {
+    document.getElementById("discount-row").style.display = "flex";
+    document.getElementById("billing-discount").textContent =
+      "-₹" + discountApplied;
   }
+}
 
-  function updateCart() {
-    const count = cart.length;
-    document.getElementById("cartCount").textContent = count;
-    const list = document.getElementById("cartItemsList");
-    const empty = document.getElementById("cartEmpty");
-    list.querySelectorAll(".cart-item").forEach((el) => el.remove());
-    if (count === 0) {
-      empty.style.display = "flex";
-      document.getElementById("cartTotal").textContent = "₹0";
+// ================= NEXT STEP =================
+function billingNext() {
+  if (billingStep === 1 && !validateStep1()) return;
+
+  if (billingStep === 2) {
+    if (!document.querySelector(".delivery-opt.selected")) {
+      showToast("Please select a delivery option");
       return;
     }
-    empty.style.display = "none";
-    let total = 0;
-    cart.forEach((item) => {
-      const p = parseInt(item.price.replace("₹", "")) || 0;
-      total += p;
-      const div = document.createElement("div");
-      div.className = "cart-item";
-      div.innerHTML = `
-        <div class="cart-item-emoji">🛒</div>
-        <div class="cart-item-info">
-          <div class="cart-item-name">${item.name}</div>
-          <div class="cart-item-price">${item.price}</div>
-        </div>
-        <button class="cart-remove" onclick="removeFromCart(${item.id})">✕</button>
-      `;
-      list.appendChild(div);
-    });
-    document.getElementById("cartTotal").textContent = "₹" + total;
+
+    startRazorpayPayment();
+    return;
   }
 
-  function openBilling() {
-    if (!cart.length) {
-      showToast("Your cart is empty! Add some products first.");
-      return;
-    }
-    if (cartOpen) toggleCart();
-
-    billingStep = 1;
-    discountApplied = 0;
-    deliveryCharge = 0;
-
-    document.getElementById("couponMsg").classList.remove("show");
-    document.getElementById("couponInput").value = "";
-    document.getElementById("discount-row").style.display = "none";
-
-    updateBillingUI();
-    updateBillingSummary();
-
-    document.getElementById("billingOverlay").classList.add("open");
-
-    setTimeout(() => {
-      const firstOpt = document.querySelector(".delivery-opt.selected");
-      if (firstOpt) {
-        const priceText = firstOpt.querySelector(".delivery-price").innerText;
-        const price = parseInt(priceText.replace(/\D/g, "")) || 0;
-        selectDelivery(firstOpt, price);
-      }
-    }, 50);
-  }
-
-  function closeBilling() {
-    document.getElementById("billingOverlay").classList.remove("open");
-    if (billingStep === 3) {
-      cart = [];
-      updateCart();
-    }
-  }
-
-  function updateBillingUI() {
-    document.querySelectorAll(".billing-panel").forEach((p) =>
-      p.classList.remove("active")
-    );
-    document
-      .getElementById("billing-step-" + billingStep)
-      .classList.add("active");
-
-    document.querySelectorAll(".billing-step").forEach((s, i) => {
-      s.classList.remove("active", "done");
-      if (i + 1 === billingStep) s.classList.add("active");
-      else if (i + 1 < billingStep) s.classList.add("done");
-    });
-
-    const nav = document.getElementById("billingNav");
-    const back = document.getElementById("billingBackBtn");
-    const next = document.getElementById("billingNextBtn");
-
-    nav.style.display = billingStep === 3 ? "none" : "flex";
-    back.style.visibility = billingStep > 1 ? "visible" : "hidden";
-    next.textContent =
-      billingStep === 2 ? "🔒 Pay & Place Order" : "Continue →";
-  }
-
-  function updateBillingSummary() {
-    const itemsEl = document.getElementById("billingSummaryItems");
-    itemsEl.innerHTML = "";
-    let subtotal = 0;
-    cart.forEach((item) => {
-      const p = parseInt(item.price.replace("₹", "")) || 0;
-      subtotal += p;
-      itemsEl.innerHTML += `
-        <div class="summary-item">
-          <span class="summary-item-name">${item.name}</span>
-          <span class="summary-item-price">${item.price}</span>
-        </div>`;
-    });
-    const gst = Math.round(subtotal * 0.18);
-    const grand = subtotal + deliveryCharge + gst - discountApplied;
-    document.getElementById("billing-subtotal").textContent = "₹" + subtotal;
-    document.getElementById("billing-delivery").textContent =
-      deliveryCharge === 0 ? "FREE" : "₹" + deliveryCharge;
-    document.getElementById("billing-gst").textContent = "₹" + gst;
-    document.getElementById("billing-grand-total").textContent = "₹" + grand;
-
-    if (discountApplied > 0) {
-      document.getElementById("discount-row").style.display = "flex";
-      document.getElementById("billing-discount").textContent =
-        "-₹" + discountApplied;
-    }
-  }
-
-  function billingNext() {
-    if (billingStep === 1 && !validateStep1()) return;
-
-    if (billingStep === 2) {
-        // Ensure delivery option is selected
-        if (!document.querySelector(".delivery-opt.selected")) {
-            showToast("Please select a delivery option");
-            return;
-        }
-        startRazorpayPayment();
-        return;
-    }
-
-    billingStep++;
-    updateBillingUI();
+  billingStep++;
+  updateBillingUI();
 }
 
   function billingBack() {
@@ -1727,11 +1754,10 @@ let dbSuccess = false;
 function toggleMenu() {
   document.getElementById("navLinks").classList.toggle("open");
 }
-  // 🔍 PRODUCT SEARCH (SAFE — DOES NOT TOUCH OTHER FEATURES)
-document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", () => {
   loadProducts();
+
   const searchInput = document.getElementById("searchInput");
-  const productCards = () => document.querySelectorAll(".product-card");
   const noResults = document.getElementById("noResults");
 
   if (!searchInput) return;
@@ -1740,34 +1766,35 @@ document.addEventListener("DOMContentLoaded", () => {
     const query = searchInput.value.toLowerCase().trim();
     let visibleCount = 0;
 
-    productCards().forEach(card => {
-      const name =
-        card.querySelector(".product-name")?.innerText.toLowerCase() || "";
-      const category =
-        card.querySelector(".product-category")?.innerText.toLowerCase() || "";
-      const dataCat =
-        card.getAttribute("data-cat")?.toLowerCase() || "";
+    const productCards = document.querySelectorAll(".product-card");
 
-      if (
+    productCards.forEach(card => {
+      const name =
+        card.querySelector(".product-name")?.textContent.toLowerCase() || "";
+
+      const category =
+        card.querySelector(".product-category")?.textContent.toLowerCase() || "";
+
+      const dataCat =
+        (card.getAttribute("data-cat") || "").toLowerCase();
+
+      const match =
         name.includes(query) ||
         category.includes(query) ||
-        dataCat.includes(query)
-      ) {
-        card.style.display = "";
-        visibleCount++;
-      } else {
-        card.style.display = "none";
-      }
+        dataCat.includes(query);
+
+      card.style.display = match ? "" : "none";
+
+      if (match) visibleCount++;
     });
 
-    // Show / hide "no results"
+    // show / hide no results
     if (noResults) {
       noResults.style.display =
         visibleCount === 0 && query !== "" ? "block" : "none";
     }
   });
 });
-
 
 
 
