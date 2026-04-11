@@ -2416,6 +2416,7 @@ function renderProductGrid() {
         <div class="product-tile-body">
           <div class="product-tile-name" title="${p.name}">${p.name}</div>
           <div class="product-tile-cat">${p.category || "—"}</div>
+          ${p.weight ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">${p.weight}</div>` : ""}
           <div class="product-tile-price">₹${Number(p.price).toLocaleString("en-IN")}</div>
           ${p.mrp && p.mrp > p.price ? `<div style="font-size:11px;color:var(--text3);text-decoration:line-through;margin-top:2px;">₹${Number(p.mrp).toLocaleString("en-IN")}</div>` : ""}
           ${discount ? `<span class="badge trend-up" style="margin-top:4px;font-size:10px;">${discount}% off</span>` : ""}

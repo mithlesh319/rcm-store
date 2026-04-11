@@ -448,7 +448,7 @@ else if (action === "add-product") {
       desc: body.desc || "",
 
       // 🔥 ADD THIS LINE (IMPORTANT FIX)
-      variant: body.variant || "",
+      weight: body.variant || "",
 
       tags: Array.isArray(body.tags) ? body.tags : [],
       image: imageUrl,
