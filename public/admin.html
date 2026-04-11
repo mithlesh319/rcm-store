@@ -1841,7 +1841,7 @@ async function loadOrders() {
     const data = await res.json();
 
     // ✅ FIX 1: Proper validation
-    if (!data.success || !Array.isArray(data.orders) || data.orders.length === 0) {
+    if (!data || !data.success || !Array.isArray(data.orders) || data.orders.length === 0) {
       table.innerHTML = `
         <tr>
           <td colspan="6">
@@ -1962,7 +1962,7 @@ async function loadCustomers(){
   const t=document.getElementById("customersTable");
 
   try{
-    const res = await fetch(`${API}/api/get-customers`,{credentials:"include"});
+    const res = await fetch(`${API}/api?action=get-customers`,{credentials:"include"});
     if(!res.ok) throw new Error("Customers failed");
 
     const data = await res.json();
@@ -2058,14 +2058,20 @@ async function viewContact(id) {
       credentials: "include"
     });
 
-    const data = await res.json();
-
-    if (!data.success || !Array.isArray(data.contacts)) {
-      toast("Invalid data", "error");
+    if (!res.ok) {
+      toast("Failed to fetch contacts", "error");
       return;
     }
 
-    const c = data.contacts.find(x => String(x._id) === id);
+    const data = await res.json();
+
+    if (!data.success || !Array.isArray(data.contacts)) {
+      toast("Invalid data from server", "error");
+      return;
+    }
+
+    // ✅ FIX: safe comparison of IDs
+    const c = data.contacts.find(x => String(x._id) === String(id));
 
     if (!c) {
       toast("Message not found", "error");
@@ -2094,7 +2100,7 @@ async function viewContact(id) {
     document.getElementById("contactModal").style.display = "flex";
 
   } catch (err) {
-    console.error(err);
+    console.error("viewContact error:", err);
     toast("Error loading message", "error");
   }
 }
@@ -2109,7 +2115,7 @@ async function updateStatus(){
     return;
   }
 
-  if(!id.startsWith("#RCM-")){
+  if(!id.startsWith("rcm-")){
     toast("Invalid Order ID format","error");
     return;
   }
@@ -2221,53 +2227,81 @@ function renderTags() {
 
 /* -- Submit product -- */
 async function submitProduct() {
-  const name     = document.getElementById("prodName").value.trim();
+  const name = document.getElementById("prodName").value.trim();
   const category = document.getElementById("prodCategory").value.trim();
-  const price    = parseFloat(document.getElementById("prodPrice").value) || 0;
-  const mrp      = parseFloat(document.getElementById("prodMrp").value) || 0;
-  const stock    = parseInt(document.getElementById("prodStock").value) || 0;
-  const sku      = document.getElementById("prodSku").value.trim();
-  const desc     = document.getElementById("prodDesc").value.trim();
+  const price = Number(document.getElementById("prodPrice").value) || 0;
+  const mrp = Number(document.getElementById("prodMrp").value) || 0;
+  const stock = Number(document.getElementById("prodStock").value) || 0;
+  const sku = document.getElementById("prodSku").value.trim();
+  const desc = document.getElementById("prodDesc").value.trim();
 
-  if (!name) { toast("Product name is required", "error"); return; }
-  if (!price) { toast("Selling price is required", "error"); return; }
+  // ✅ VALIDATION
+  if (!name) return toast("Product name is required", "error");
+  if (price <= 0) return toast("Valid price is required", "error");
+
+  // ⚠️ IMAGE SIZE CHECK (important for Cloudinary + API speed)
+  if (productImageBase64 && productImageBase64.length > 2_000_000) {
+    return toast("Image too large. Please use smaller image", "error");
+  }
 
   const payload = {
-    name, category, price, mrp, stock, sku, desc,
-    tags: productTags,
-    image: productImageBase64 || null
+    name,
+    category,
+    price,
+    mrp,
+    stock,
+    sku,
+    desc,
+    tags: productTags || [],
+    image: productImageBase64 || null,
   };
 
-  /* Try to POST to backend — gracefully falls back to local preview */
   try {
     const res = await fetch(`${API}/api?action=add-product`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(payload)
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // ✅ IMPORTANT for admin cookie
+      body: JSON.stringify(payload),
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success) {
-        toast("Product added successfully");
-        if (data.product) {
-          productList.unshift(data.product);
-        } else {
-          productList.unshift({ ...payload, _id: Date.now().toString() });
-        }
-        resetProductForm();
-        renderProductGrid();
-        updateNavProductBadge();
-        return;
-      }
+    const data = await res.json().catch(() => ({}));
+
+    // ❌ Unauthorized handling
+    if (res.status === 401) {
+      toast("Admin login required", "error");
+      return;
     }
-    /* If API not available yet, add locally for preview */
-    throw new Error("API not ready");
+
+    // ❌ API error
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || "Failed to add product");
+    }
+
+    // ✅ SUCCESS
+    toast("Product added successfully");
+
+    productList.unshift(data.product || {
+      ...payload,
+      _id: Date.now().toString(),
+    });
+
+    resetProductForm();
+    renderProductGrid();
+    updateNavProductBadge();
+
   } catch (err) {
-    /* Graceful local fallback — useful during development */
-    productList.unshift({ ...payload, _id: Date.now().toString() });
-    toast("Product saved (local preview — connect API to persist)");
+    console.error("Add Product Error:", err);
+
+    // ⚠️ fallback (only for dev mode)
+    productList.unshift({
+      ...payload,
+      _id: Date.now().toString(),
+    });
+
+    toast("Saved locally (API failed)", "error");
+
     resetProductForm();
     renderProductGrid();
     updateNavProductBadge();
@@ -2302,21 +2336,43 @@ function resetProductForm() {
   renderTags();
 }
 
-function deleteProduct(id) {
-  productList = productList.filter(p => p._id !== id);
-  renderProductGrid();
-  updateNavProductBadge();
-  toast("Product removed");
+async function deleteProduct(id) {
+  if (!confirm("Delete this product?")) return;
 
-  /* Optionally call API */
-  fetch(`${API}/api?action=delete-product`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ id })
-  }).catch(() => {});
+  try {
+    const res = await fetch(`${API}/api?action=delete-product`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ id })
+    });
+
+    // ❗ FIX 1: check HTTP response first
+    if (!res.ok) {
+      toast("Server error while deleting", "error");
+      return;
+    }
+
+    const data = await res.json();
+
+    // ❗ FIX 2: safe validation
+    if (!data || !data.success) {
+      toast(data?.message || "Delete failed", "error");
+      return;
+    }
+
+    // ❗ FIX 3: safe local update
+    productList = productList.filter(p => String(p._id) !== String(id));
+
+    renderProductGrid();
+    updateNavProductBadge();
+    toast("Product deleted successfully");
+
+  } catch (err) {
+    console.error("Delete Product Error:", err);
+    toast("Network/server error", "error");
+  }
 }
-
 function renderProductGrid() {
   const grid = document.getElementById("productGrid");
   const badge = document.getElementById("productCountBadge");
@@ -2381,6 +2437,7 @@ function updateNavProductBadge() {
     if (data.success && Array.isArray(data.products)) {
       productList = data.products;
       updateNavProductBadge();
+      renderProductGrid();
     }
   } catch (e) {
     /* API not available yet — silent fail */

@@ -1,17 +1,46 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import { v2 as cloudinary } from "cloudinary";
+
+// ✅ Cloudinary config
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// ===============================
+// 🔐 COOKIE HELPERS (ADD HERE)
+// ===============================
+function getCookies(req) {
+  return Object.fromEntries(
+    (req.headers.cookie || "")
+      .split(";")
+      .filter(Boolean)
+      .map(v => {
+        const [k, ...val] = v.trim().split("=");
+        return [k, val.join("=")];
+      })
+  );
+}
+
+function isAdmin(req) {
+  const cookies = getCookies(req);
+  return cookies.admin === "true";
+}
 
 const uri = process.env.MONGODB_URI;
 
 let client;
 let clientPromise;
 
-// ✅ Reuse MongoDB connection
+// ✅ Reuse MongoDB connection (Vercel-safe)
 if (!global._mongoClientPromise) {
   client = new MongoClient(uri);
   global._mongoClientPromise = client.connect();
 }
+
 clientPromise = global._mongoClientPromise;
 
 // ✅ Razorpay
@@ -70,12 +99,10 @@ export default async function handler(req, res) {
 
     // 🔐 CHECK ADMIN
     else if (action === "check-admin") {
-      const cookies = req.headers.cookie || "";
-
-      return res.status(200).json({
-        loggedIn: cookies.includes("admin=true"),
-      });
-    }
+  return res.status(200).json({
+    loggedIn: isAdmin(req),
+  });
+}
 
     // 📩 SAVE CONTACT
     else if (action === "contact") {
@@ -102,25 +129,42 @@ export default async function handler(req, res) {
     }
 
     // 📥 GET CONTACTS
-    else if (action === "get-contacts") {
-      if (req.method !== "GET") {
-        return res.status(405).json({
-          success: false,
-          message: "Only GET allowed",
-        });
-      }
+else if (action === "get-contacts") {
+  if (req.method !== "GET") {
+    return res.status(405).json({
+      success: false,
+      message: "Only GET allowed",
+    });
+  }
 
-      const data = await db
-        .collection("contacts")
-        .find({})
-        .sort({ createdAt: -1 })
-        .toArray();
+  // 🔐 ADMIN CHECK (IMPORTANT FIX)
+  if (!isAdmin(req)) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
 
-      return res.status(200).json({
-        success: true,
-        contacts: data,
-      });
-    }
+  try {
+    const data = await db
+      .collection("contacts")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    return res.status(200).json({
+      success: true,
+      contacts: data,
+    });
+
+  } catch (err) {
+    console.error("Get Contacts Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
 
     // 💳 CREATE ORDER
     else if (action === "create-order") {
@@ -133,7 +177,7 @@ export default async function handler(req, res) {
       const order = await razorpay.orders.create({
         amount,
         currency: "INR",
-        receipt: "rcm_" + Date.now(),
+        receipt: "rcm-" + Date.now(),
       });
 
       return res.json(order);
@@ -190,73 +234,107 @@ export default async function handler(req, res) {
     }
 
     // 🔍 TRACK ORDER
-    else if (action === "track-order") {
-      if (req.method !== "POST") {
-        return res.status(405).json({
-          success: false,
-          message: "Method not allowed",
-        });
-      }
+else if (action === "track-order") {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      success: false,
+      message: "Method not allowed",
+    });
+  }
 
-      const { orderId } = body || {};
+  // 🔐 ADMIN CHECK (IMPORTANT UPDATE)
+  if (!isAdmin(req)) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
 
-      if (!orderId) {
-        return res.status(400).json({
-          success: false,
-          message: "Order ID required",
-        });
-      }
+  const { orderId } = body || {};
 
-      const order = await db.collection("orders").findOne({ orderId });
+  if (!orderId) {
+    return res.status(400).json({
+      success: false,
+      message: "Order ID required",
+    });
+  }
 
-      if (!order) {
-        return res.status(404).json({
-          success: false,
-          message: "Order not found",
-        });
-      }
+  try {
+    const order = await db.collection("orders").findOne({ orderId });
 
-      return res.status(200).json({
-        success: true,
-        order,
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
       });
     }
+
+    return res.status(200).json({
+      success: true,
+      order,
+    });
+
+  } catch (err) {
+    console.error("Track Order Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
 
     // 🔄 UPDATE STATUS
-    else if (action === "update-status") {
-      if (req.method !== "POST") {
-        return res.status(405).json({
-          success: false,
-          message: "Only POST allowed",
-        });
-      }
+else if (action === "update-status") {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      success: false,
+      message: "Only POST allowed",
+    });
+  }
 
-      const { orderId, status } = body || {};
+  // 🔐 ADMIN CHECK (IMPORTANT FIX)
+  if (!isAdmin(req)) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
 
-      if (!orderId || !status) {
-        return res.status(400).json({
-          success: false,
-          message: "Missing orderId or status",
-        });
-      }
+  const { orderId, status } = body || {};
 
-      const result = await db.collection("orders").updateOne(
-        { orderId },
-        { $set: { status } }
-      );
+  if (!orderId || !status) {
+    return res.status(400).json({
+      success: false,
+      message: "Missing orderId or status",
+    });
+  }
 
-      if (result.matchedCount === 0) {
-        return res.status(404).json({
-          success: false,
-          message: "Order not found",
-        });
-      }
+  try {
+    const result = await db.collection("orders").updateOne(
+      { orderId },
+      { $set: { status, updatedAt: new Date() } }
+    );
 
-      return res.status(200).json({
-        success: true,
-        message: "Status updated",
+    if (result.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
       });
     }
+
+    return res.status(200).json({
+      success: true,
+      message: "Status updated",
+    });
+
+  } catch (err) {
+    console.error("Update Status Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
 
     // ✅ VERIFY PAYMENT
     else if (action === "verify-payment") {
@@ -282,29 +360,46 @@ export default async function handler(req, res) {
       });
     }
 
-    // 📦 GET PRODUCTS
-else if (action === "get-products") {
+    // 📦 GET ORDERS
+else if (action === "get-orders") {
   if (req.method !== "GET") {
     return res.status(405).json({
       success: false,
-      message: "Only GET allowed",
+      message: "Method not allowed",
     });
   }
 
-  const products = await db.collection("products").find({}).toArray();
+  // 🔐 ADMIN CHECK (IMPORTANT FIX)
+  if (!isAdmin(req)) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
 
-const formatted = products.map(p => ({
-  ...p,
-  _id: p._id.toString()
-}));
+  try {
+    const orders = await db
+      .collection("orders")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
 
-return res.status(200).json({
-  success: true,
-  products: formatted,
-});
+    return res.status(200).json({
+      success: true,
+      orders,
+    });
+
+  } catch (err) {
+    console.error("Get Orders Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
 }
 
-// ➕ ADD PRODUCT (ADMIN)
+
+// ➕ ADD PRODUCT
 else if (action === "add-product") {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -313,27 +408,64 @@ else if (action === "add-product") {
     });
   }
 
-  // 🔐 CHECK ADMIN COOKIE
-  const cookies = req.headers.cookie || "";
-  if (!cookies.includes("admin=true")) {
+  // 🔐 ADMIN CHECK
+  if (!isAdmin(req)) {
     return res.status(401).json({
       success: false,
       message: "Unauthorized",
     });
   }
 
-  await db.collection("products").insertOne({
-    ...body,
-    createdAt: new Date(),
-  });
+  try {
+    let imageUrl = null;
 
-  return res.status(200).json({
-    success: true,
-    message: "Product added",
-  });
+    // ☁️ CLOUDINARY UPLOAD
+    if (body.image && body.image.startsWith("data:image")) {
+      const uploadRes = await cloudinary.uploader.upload(body.image, {
+        folder: "rcm_products",
+        resource_type: "image",
+        quality: "auto",
+        fetch_format: "auto",
+      });
+
+      imageUrl = uploadRes.secure_url;
+    }
+
+    const productData = {
+      name: body.name || "",
+      category: body.category || "",
+      price: Number(body.price || 0),
+      mrp: Number(body.mrp || 0),
+      stock: Number(body.stock || 0),
+      sku: body.sku || "",
+      desc: body.desc || "",
+      tags: Array.isArray(body.tags) ? body.tags : [],
+      image: imageUrl,
+      createdAt: new Date(),
+    };
+
+    const result = await db.collection("products").insertOne(productData);
+
+    return res.status(200).json({
+      success: true,
+      message: "Product added",
+      product: {
+        _id: result.insertedId.toString(),
+        ...productData,
+      },
+    });
+
+  } catch (err) {
+    console.error("Add Product Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to add product",
+    });
+  }
 }
 
-// ❌ DELETE PRODUCT (ADMIN)
+
+// ❌ DELETE PRODUCT
 else if (action === "delete-product") {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -342,8 +474,8 @@ else if (action === "delete-product") {
     });
   }
 
-  const cookies = req.headers.cookie || "";
-  if (!cookies.includes("admin=true")) {
+  // 🔐 ADMIN CHECK
+  if (!isAdmin(req)) {
     return res.status(401).json({
       success: false,
       message: "Unauthorized",
@@ -352,15 +484,246 @@ else if (action === "delete-product") {
 
   const { id } = body || {};
 
-  await db.collection("products").deleteOne({
-    _id: new (require("mongodb").ObjectId)(id),
-  });
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: "Product ID required",
+    });
+  }
 
-  return res.status(200).json({
-    success: true,
-    message: "Product deleted",
-  });
+  try {
+    const product = await db.collection("products").findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // ☁️ DELETE FROM CLOUDINARY (SAFE)
+    if (product.image) {
+      try {
+        const urlParts = product.image.split("/upload/");
+        if (urlParts.length > 1) {
+          const publicIdWithExt = urlParts[1];
+          const publicId = publicIdWithExt.substring(
+            0,
+            publicIdWithExt.lastIndexOf(".")
+          );
+
+          await cloudinary.uploader.destroy(publicId);
+        }
+      } catch (e) {
+        console.warn("Cloudinary delete failed:", e.message);
+      }
+    }
+
+    await db.collection("products").deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Product deleted",
+    });
+
+  } catch (err) {
+    console.error("Delete Product Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Delete failed",
+    });
+  }
 }
+
+
+// ✏️ UPDATE PRODUCT (ADMIN)
+else if (action === "update-product") {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      success: false,
+      message: "Only POST allowed",
+    });
+  }
+
+  // 🔐 ADMIN CHECK (FIXED)
+  if (!isAdmin(req)) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
+
+  const { id, image, ...updateData } = body || {};
+
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: "Product ID required",
+    });
+  }
+
+  try {
+    let imageUrl = null;
+
+    // ☁️ UPLOAD NEW IMAGE
+    if (image && image.startsWith("data:image")) {
+      const uploadRes = await cloudinary.uploader.upload(image, {
+        folder: "rcm_products",
+        resource_type: "image",
+        quality: "auto",
+        fetch_format: "auto",
+      });
+
+      imageUrl = uploadRes.secure_url;
+
+      // 🗑️ DELETE OLD IMAGE (SAFE)
+      const oldProduct = await db.collection("products").findOne({
+        _id: new ObjectId(id),
+      });
+
+      if (oldProduct?.image) {
+        try {
+          const urlParts = oldProduct.image.split("/upload/");
+          const publicId = urlParts[1].split(".")[0];
+
+          await cloudinary.uploader.destroy(publicId);
+        } catch (e) {
+          console.warn("Cloudinary delete failed:", e.message);
+        }
+      }
+    }
+
+    const finalUpdate = { ...updateData };
+
+    if (imageUrl) {
+      finalUpdate.image = imageUrl;
+    }
+
+    await db.collection("products").updateOne(
+      { _id: new ObjectId(id) },
+      { $set: finalUpdate }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Product updated",
+    });
+
+  } catch (err) {
+    console.error("Update Product Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Update failed",
+    });
+  }
+}
+
+// 📊 DASHBOARD DATA
+else if (action === "dashboard") {
+  if (req.method !== "GET") {
+    return res.status(405).json({ success: false });
+  }
+
+  // 🔐 ADMIN CHECK (IMPORTANT FIX)
+  if (!isAdmin(req)) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
+
+  try {
+    const orders = await db.collection("orders").find({}).toArray();
+    const contacts = await db.collection("contacts").find({}).toArray();
+
+    const totalRevenue = orders.reduce(
+      (sum, o) => sum + Number(o.grandTotal || 0),
+      0
+    );
+
+    const uniqueCustomers = new Set(
+      orders.map(o => o.phone).filter(Boolean)
+    ).size;
+
+    return res.status(200).json({
+      success: true,
+      totalOrders: orders.length,
+      totalCustomers: uniqueCustomers,
+      totalRevenue,
+      totalMessages: contacts.length,
+    });
+
+  } catch (err) {
+    console.error("Dashboard Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+
+// 👥 GET CUSTOMERS
+else if (action === "get-customers") {
+  if (req.method !== "GET") {
+    return res.status(405).json({
+      success: false,
+      message: "Method not allowed",
+    });
+  }
+
+  // 🔐 ADMIN CHECK (IMPORTANT FIX)
+  if (!isAdmin(req)) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
+
+  try {
+    const orders = await db
+      .collection("orders")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    const map = {};
+
+    orders.forEach(o => {
+      const key = o.phone || "unknown";
+
+      if (!map[key]) {
+        map[key] = {
+          fname: o.fname || "",
+          lname: o.lname || "",
+          phone: o.phone || "",
+          email: o.email || "",
+          orderCount: 0,
+        };
+      }
+
+      map[key].orderCount += 1;
+    });
+
+    return res.status(200).json({
+      success: true,
+      customers: Object.values(map),
+    });
+
+  } catch (err) {
+    console.error("Get Customers Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+
 
     // ❌ DEFAULT
     else {

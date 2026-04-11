@@ -1231,37 +1231,54 @@ img {
   // 🔥 LOAD PRODUCTS FROM MONGODB
 async function loadProducts() {
   try {
-    const res = await fetch("/api?action=get-products");
+    const res = await fetch("/api?action=get-products", {
+      credentials: "include",
+    });
+
     const data = await res.json();
 
     const container = document.getElementById("productsGrid");
     container.innerHTML = "";
 
-    data.products.forEach(p => {
+    if (!data?.products || !Array.isArray(data.products)) {
+      console.error("❌ Invalid product data:", data);
+      return;
+    }
+
+    data.products.forEach((p) => {
+      const name = p.name || "Product";
+      const category = p.category || "";
+      const image = p.image || "";
+      const price = p.price || 0;
+      const rating = p.rating || 4;
+      const weight = p.weight || "";
+
       container.innerHTML += `
-        <div class="product-card" data-cat="${p.category}">
+        <div class="product-card" data-cat="${category}">
           <div class="product-img">
             <button class="wishlist-btn">🤍</button>
-            <img src="${p.image}" alt="${p.name}">
+            <img src="${image}" alt="${name}">
           </div>
 
           <div class="product-info">
-            <div class="product-category">${p.category}</div>
-            <div class="product-name">${p.name}</div>
+            <div class="product-category">${category}</div>
+            <div class="product-name">${name}</div>
 
             <div class="product-rating">
-              <span class="stars">${"★".repeat(p.rating || 4)}</span>
+              <span class="stars">${"★".repeat(rating)}</span>
             </div>
 
-            <div class="product-weight">${p.weight}</div>
+            <div class="product-weight">${weight}</div>
 
             <div class="product-footer">
               <div class="product-price">
-                <span class="price-current">₹${p.price}</span>
+                <span class="price-current">₹${price}</span>
               </div>
 
               <button class="add-btn"
-                onclick="addToCart('${p.name}','₹${p.price}')">+</button>
+                onclick="addToCart(${JSON.stringify(name)}, '₹${price}')">
+                +
+              </button>
             </div>
           </div>
         </div>
@@ -1272,10 +1289,11 @@ async function loadProducts() {
     console.error("❌ Error loading products:", err);
   }
 }
-  let cartOpen = false;
-  let billingStep = 1;
-  let deliveryCharge = 0;
-  let discountApplied = 0;
+
+let cartOpen = false;
+let billingStep = 1;
+let deliveryCharge = 0;
+let discountApplied = 0;
 
   function toggleCart() {
     cartOpen = !cartOpen;
@@ -1500,18 +1518,19 @@ async function loadProducts() {
 
   // Razorpay + COD
 
-  function startRazorpayPayment() {
-    if (!validateStep1()) return;
-    placeOrder(false);
-  }
+function startRazorpayPayment() {
+  if (!validateStep1()) return;
+  placeOrder(false);
+}
 
-  function confirmCOD() {
-    if (!validateStep1()) return;
-    const ok = confirm("Are you sure you want Cash on Delivery?");
-    if (ok) placeOrder(true);
-  }
+function confirmCOD() {
+  if (!validateStep1()) return;
 
-  async function placeOrder(isCOD) {
+  const ok = confirm("Are you sure you want Cash on Delivery?");
+  if (ok) placeOrder(true);
+}
+
+async function placeOrder(isCOD) {
   if (isCOD) {
     completeOrder("COD");
     return;
@@ -1519,64 +1538,104 @@ async function loadProducts() {
 
   const grandTotalText =
     document.getElementById("billing-grand-total").textContent;
-  const amount = parseInt(grandTotalText.replace("₹", "")) * 100;
 
-  // 1️⃣ Create order
-  const res = await fetch("/api?action=create-order", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ amount }),
-  });
+  const amount =
+    parseInt(grandTotalText.replace("₹", "").replace(/,/g, "")) * 100;
 
-  if (!res.ok) {
-    showToast("❌ Order creation failed");
-    return;
+  try {
+    // 1️⃣ Create Razorpay order
+    const res = await fetch("/api?action=create-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ amount }),
+    });
+
+    if (!res.ok) {
+      showToast("❌ Order creation failed");
+      return;
+    }
+
+    const order = await res.json();
+
+    if (!order || !order.id) {
+      showToast("❌ Invalid order response");
+      return;
+    }
+
+    // 2️⃣ Get Razorpay key
+    const keyRes = await fetch("/api?action=get-key", {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const keyData = await keyRes.json();
+
+    if (!keyData || !keyData.key) {
+      showToast("❌ Payment key not found");
+      return;
+    }
+
+    // 3️⃣ Open Razorpay checkout
+    const options = {
+      key: keyData.key,
+      amount: order.amount,
+      currency: "INR",
+      name: "RCM Store",
+      description: "Order Payment",
+      order_id: order.id,
+
+      handler: function (response) {
+        verifyPayment(response);
+      },
+
+      prefill: {
+        name:
+          document.getElementById("fname").value +
+          " " +
+          document.getElementById("lname").value,
+        email: document.getElementById("email").value,
+        contact: document.getElementById("phone").value,
+      },
+
+      theme: { color: "#16a34a" },
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.open();
+
+  } catch (err) {
+    console.error("❌ Payment error:", err);
+    showToast("❌ Something went wrong during payment");
   }
-
-  const order = await res.json();
-
-  // 2️⃣ Get Razorpay key securely from backend
-  const keyRes = await fetch("/api?action=get-key");
-  const { key } = await keyRes.json();
-
-  // 3️⃣ Open Razorpay checkout
-  const options = {
-    key: key,
-    amount: order.amount,
-    currency: "INR",
-    name: "RCM Store",
-    description: "Order Payment",
-    order_id: order.id,
-    handler: function (response) {
-      verifyPayment(response);
-    },
-    prefill: {
-      name:
-        document.getElementById("fname").value +
-        " " +
-        document.getElementById("lname").value,
-      email: document.getElementById("email").value,
-      contact: document.getElementById("phone").value,
-    },
-    theme: { color: "#16a34a" },
-  };
-
-  const rzp = new Razorpay(options);
-  rzp.open();
 }
 
-  async function verifyPayment(paymentData) {
+async function verifyPayment(paymentData) {
+  try {
     const res = await fetch("/api?action=verify-payment", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
       body: JSON.stringify(paymentData),
     });
 
     const result = await res.json();
 
-    if (result.success) completeOrder("ONLINE");
-    else showToast("❌ Payment verification failed");
+    if (result?.success) {
+      completeOrder("ONLINE");
+    } else {
+      showToast("❌ Payment verification failed");
+    }
+
+  } catch (err) {
+    console.error("❌ Verify error:", err);
+    showToast("❌ Server error during verification");
   }
+}
 
   async function completeOrder(mode) {
   const orderId =
@@ -1633,17 +1692,18 @@ async function loadProducts() {
 let dbSuccess = false;
 
   try {
-    // ✅ SAVE TO DB ONLY
-    const dbRes = await fetch("/api?action=save-order", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(orderData),
-    });
+  // ✅ SAVE TO DB ONLY
+  const dbRes = await fetch("/api?action=save-order", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include", // ✅ added for session/cookie support consistency
+    body: JSON.stringify(orderData),
+  });
 
-    const dbData = await dbRes.json();
-    dbSuccess = dbData.success;
+  const dbData = await dbRes.json();
+  dbSuccess = dbData.success;
 
     // ✅ Result messages
     if (dbSuccess) {
