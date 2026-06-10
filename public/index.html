@@ -829,13 +829,13 @@ img { max-width: 100%; height: auto; display: block; }
     <button class="close-cart" onclick="toggleCart()">✕</button>
   </div>
 
-  <div class="cart-items" id="cartItemsList">
-    <div class="cart-empty" id="cartEmpty">
-      <div style="font-size:56px">🛍️</div>
-      <p style="font-weight:600;color:var(--charcoal)">Your cart is empty</p>
-      <p style="font-size:13px">Add items to get started</p>
-    </div>
-  </div>
+  <div class="cart-items" id="cartItemsList"></div>
+
+<div class="cart-empty" id="cartEmpty">
+  <div style="font-size:56px">🛍️</div>
+  <p style="font-weight:600;color:var(--charcoal)">Your cart is empty</p>
+  <p style="font-size:13px">Add items to get started</p>
+</div>
 
   <div class="cart-footer">
     <div class="cart-total">
@@ -1157,13 +1157,21 @@ function toggleCart() {
 }
 
 function addToCart(name, price) {
-  const cleanPrice = Number(String(price).replace(/[^\d]/g, ""));
+  const cleanPrice = Number(price);
 
-  cart.push({
-    id: Date.now(),
-    name,
-    price: cleanPrice
-  });
+  // Check if product already exists
+  const existingItem = cart.find(item => item.name === name);
+
+  if (existingItem) {
+    existingItem.qty += 1;
+  } else {
+    cart.push({
+      id: Date.now(),
+      name,
+      price: cleanPrice,
+      qty: 1
+    });
+  }
 
   updateCart();
   showToast(name + " added to cart!");
@@ -1171,51 +1179,65 @@ function addToCart(name, price) {
 
 // ================= REMOVE =================
 function removeFromCart(id) {
-  const cleanId = Number(id);
-
-  cart = cart.filter(item => item.id !== cleanId);
+  cart = cart.filter(item => item.id !== id);
   updateCart();
 }
 
 // ================= UPDATE CART UI =================
 function updateCart() {
   const count = cart.length;
-  document.getElementById("cartCount").textContent = count;
 
-  const list = document.getElementById("cartItemsList");
-  const empty = document.getElementById("cartEmpty");
+  const cartCount = document.getElementById("cartCount");
+  const cartItemsList = document.getElementById("cartItemsList");
+  const cartEmpty = document.getElementById("cartEmpty");
+  const cartTotal = document.getElementById("cartTotal");
 
-  list.innerHTML = "";
+  if (!cartCount || !cartItemsList || !cartEmpty || !cartTotal) return;
 
+  // Update cart count
+  cartCount.textContent = count;
+
+  // Clear old items
+  cartItemsList.innerHTML = "";
+
+  // Empty cart
   if (count === 0) {
-    empty.style.display = "flex";
-    document.getElementById("cartTotal").textContent = "₹0";
+    cartEmpty.style.display = "flex";
+    cartTotal.textContent = "₹0";
     return;
   }
 
-  empty.style.display = "none";
+  // Hide empty message
+  cartEmpty.style.display = "none";
 
   let total = 0;
 
-  cart.forEach(item => {
-    total += item.price;
+  cart.forEach((item) => {
+    const price = Number(item.price) || 0;
+    total += price;
 
     const div = document.createElement("div");
     div.className = "cart-item";
 
     div.innerHTML = `
       <div class="cart-item-emoji">🛒</div>
+
       <div class="cart-item-info">
         <div class="cart-item-name">${item.name}</div>
-        <div class="cart-item-price">₹${item.price}</div>
+        <div class="cart-item-price">₹${price}</div>
       </div>
-      <button class="cart-remove" onclick="removeFromCart(${item.id})">✕</button>
+
+      <button
+        class="cart-remove"
+        onclick="removeFromCart('${item.id}')">
+        ✕
+      </button>
     `;
 
-    list.appendChild(div);
+    cartItemsList.appendChild(div);
   });
 
-  document.getElementById("cartTotal").textContent = "₹" + total;
+  cartTotal.textContent = `₹${total}`;
 }
 // ================= OPEN BILLING =================
 function openBilling() {
@@ -1390,9 +1412,21 @@ function billingNext() {
   }
 
   function buyNow(name, price) {
-    addToCart(name, price);
-    openBilling();
+  addToCart(name, price);
+
+  if (cartOpen) {
+    toggleCart();
   }
+
+  openBilling();
+
+  billingStep = 1;
+  updateBillingUI();
+
+  document
+    .getElementById("billing-step-1")
+    .scrollIntoView({ behavior: "smooth" });
+}
 
   function showToast(msg) {
     document.getElementById("toastMsg").textContent = msg;
