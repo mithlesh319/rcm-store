@@ -1133,6 +1133,11 @@ async function loadProducts() {
                 onclick="addToCart('${name.replace(/'/g, "\\'")}', ${price})">
                 +
               </button>
+              <button class="add-btn"
+                style="background:var(--accent-green);margin-left:6px;width:auto;padding:0 10px;font-size:11px;font-weight:700;letter-spacing:0.3px;"
+                onclick="buyNow('${name.replace(/'/g, "\\'")}', ${price})">
+                Buy
+              </button>
             </div>
           </div>
         </div>
@@ -1382,6 +1387,11 @@ function billingNext() {
       msg.style.color = "var(--accent-red)";
       msg.textContent = "❌ Invalid coupon code";
     }
+  }
+
+  function buyNow(name, price) {
+    addToCart(name, price);
+    openBilling();
   }
 
   function showToast(msg) {
