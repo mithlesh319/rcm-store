@@ -1157,16 +1157,17 @@ function toggleCart() {
 }
 
 function addToCart(name, price) {
-  const cleanPrice = Number(price);
+  const cleanPrice = Number(price) || 0;
 
-  // Check if product already exists
-  const existingItem = cart.find(item => item.name === name);
+  const existingItem = cart.find(
+    item => item.name.trim().toLowerCase() === name.trim().toLowerCase()
+  );
 
   if (existingItem) {
     existingItem.qty += 1;
   } else {
     cart.push({
-      id: Date.now(),
+      id: Date.now().toString(),
       name,
       price: cleanPrice,
       qty: 1
@@ -1179,13 +1180,16 @@ function addToCart(name, price) {
 
 // ================= REMOVE =================
 function removeFromCart(id) {
-  cart = cart.filter(item => item.id !== id);
+  cart = cart.filter(item => String(item.id) !== String(id));
   updateCart();
 }
 
 // ================= UPDATE CART UI =================
 function updateCart() {
-  const count = cart.length;
+  const count = cart.reduce(
+  (sum, item) => sum + item.qty,
+  0
+);
 
   const cartCount = document.getElementById("cartCount");
   const cartItemsList = document.getElementById("cartItemsList");
@@ -1214,7 +1218,7 @@ function updateCart() {
 
   cart.forEach((item) => {
     const price = Number(item.price) || 0;
-    total += price;
+    total += price * item.qty;
 
     const div = document.createElement("div");
     div.className = "cart-item";
@@ -1224,7 +1228,9 @@ function updateCart() {
 
       <div class="cart-item-info">
         <div class="cart-item-name">${item.name}</div>
-        <div class="cart-item-price">₹${price}</div>
+        <div class="cart-item-price">
+  ₹${price} × ${item.qty}
+</div>
       </div>
 
       <button
@@ -1307,12 +1313,14 @@ function updateBillingSummary() {
   let subtotal = 0;
 
   cart.forEach(item => {
-    subtotal += item.price;
+    subtotal += item.price * item.qty;
 
     itemsEl.innerHTML += `
       <div class="summary-item">
         <span class="summary-item-name">${item.name}</span>
-        <span class="summary-item-price">₹${item.price}</span>
+        <span class="summary-item-price">
+₹${item.price} × ${item.qty}
+</span>
       </div>
     `;
   });
@@ -1412,20 +1420,28 @@ function billingNext() {
   }
 
   function buyNow(name, price) {
-  addToCart(name, price);
+
+  cart = [{
+    id: Date.now().toString(),
+    name,
+    price: Number(price),
+    qty: 1
+  }];
+
+  updateCart();
 
   if (cartOpen) {
     toggleCart();
   }
 
-  openBilling();
-
   billingStep = 1;
+
   updateBillingUI();
+  updateBillingSummary();
 
   document
-    .getElementById("billing-step-1")
-    .scrollIntoView({ behavior: "smooth" });
+    .getElementById("billingOverlay")
+    .classList.add("open");
 }
 
   function showToast(msg) {
