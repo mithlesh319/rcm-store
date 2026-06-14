@@ -759,7 +759,7 @@ img { max-width: 100%; height: auto; display: block; }
 
       <!-- ✅ LOGGED IN: shows greeting + logout -->
       <div id="userGreeting" style="display:none;align-items:center;gap:10px;">
-        <span id="userNameDisplay" style="font-size:13px;font-weight:600;color:var(--accent-green);"></span>
+        <span id="userNameDisplay" style="cursor:pointer;font-size:13px;font-weight:600;color:var(--accent-green);" onclick="openAccountModal()"></span>
         <button class="login-btn" onclick="logoutUser()">Logout</button>
       </div>
 
@@ -1819,27 +1819,128 @@ async function loginAdmin() {
     showToast("Logged out successfully!");
   }
 
+  function openAccountModal() {
+  document.getElementById("accountModal").style.display = "flex";
+  loadMyAccount();
+}
+
+function closeAccountModal() {
+  document.getElementById("accountModal").style.display = "none";
+}
+
+async function loadMyAccount() {
+  try {
+    const res = await fetch("/api?action=check-user", { credentials: "include" });
+    const data = await res.json();
+    if (!data.loggedIn) return;
+
+    document.getElementById("acctName").textContent = data.name;
+    document.getElementById("acctEmail").textContent = data.email;
+
+    const ordersRes = await fetch("/api?action=get-my-orders", { credentials: "include" });
+    const ordersData = await ordersRes.json();
+
+    const list = document.getElementById("myOrdersList");
+    list.innerHTML = "";
+
+    if (!ordersData.success || !ordersData.orders.length) {
+      list.innerHTML = "<p style='font-size:13px;color:#888'>No orders yet.</p>";
+      return;
+    }
+
+    ordersData.orders.forEach(o => {
+      const statusColor = o.status === "Delivered" ? "#16a34a"
+        : o.status === "Cancelled" ? "#c0392b" : "#c9a84c";
+
+      list.innerHTML += `
+        <div style="border:1px solid #efefed;border-radius:10px;padding:12px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong>${o.orderId}</strong>
+            <span style="font-size:12px;font-weight:700;color:${statusColor}">${o.status || "Order Placed"}</span>
+          </div>
+          <div style="font-size:12px;color:#888;margin-top:4px;">
+            ₹${o.grandTotal} • ${new Date(o.createdAt).toLocaleDateString()}
+          </div>
+          <button onclick="trackFromAccount('${o.orderId}')"
+            style="margin-top:8px;font-size:12px;padding:6px 12px;border:none;border-radius:6px;
+            background:#1e1e1c;color:#fff;cursor:pointer;">Track Order</button>
+        </div>
+      `;
+    });
+  } catch (err) {
+    console.error("Account load error:", err);
+  }
+}
+
+function trackFromAccount(orderId) {
+  window.location.href = `track.html?order=${encodeURIComponent(orderId)}`;
+}
+
   // ========== LOGIN ==========
   function openLoginModal() {
     document.getElementById("loginModal").style.display = "flex";
-    document.getElementById("loginStep1").style.display = "block";
-    document.getElementById("loginStep2").style.display = "none";
     document.getElementById("loginEmail").value = "";
     document.getElementById("loginPassword").value = "";
-    document.getElementById("loginOtp").value = "";
   }
 
   function closeLoginModal() {
     document.getElementById("loginModal").style.display = "none";
   }
 
-  async function sendLoginOTP() {
+  async function loginUser() {
     const email = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value.trim();
 
     if (!email || !password) return showToast("Please enter email and password");
 
     const btn = document.getElementById("loginOtpBtn");
+    btn.textContent = "Logging in...";
+    btn.disabled = true;
+
+    try {
+      const res = await fetch("/api?action=login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        closeLoginModal();
+        showUserGreeting(data.name);
+        showToast("✅ Welcome back, " + data.name.split(" ")[0] + "!");
+      } else {
+        showToast("❌ " + data.message);
+      }
+    } catch (e) {
+      showToast("❌ Server error. Try again.");
+    }
+
+    btn.textContent = "Login →";
+    btn.disabled = false;
+  }
+
+  // ========== FORGOT PASSWORD ==========
+  function openForgotModal() {
+    closeLoginModal();
+    document.getElementById("forgotModal").style.display = "flex";
+    document.getElementById("forgotStep1").style.display = "block";
+    document.getElementById("forgotStep2").style.display = "none";
+    document.getElementById("forgotEmail").value = "";
+    document.getElementById("forgotOtp").value = "";
+    document.getElementById("forgotNewPassword").value = "";
+  }
+
+  function closeForgotModal() {
+    document.getElementById("forgotModal").style.display = "none";
+  }
+
+  async function sendResetOTP() {
+    const email = document.getElementById("forgotEmail").value.trim();
+    if (!email) return showToast("Please enter your email");
+
+    const btn = document.getElementById("forgotOtpBtn");
     btn.textContent = "Sending...";
     btn.disabled = true;
 
@@ -1848,13 +1949,13 @@ async function loginAdmin() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email, type: "login" }),
+        body: JSON.stringify({ email, type: "reset" }),
       });
       const data = await res.json();
 
       if (data.success) {
-        document.getElementById("loginStep1").style.display = "none";
-        document.getElementById("loginStep2").style.display = "block";
+        document.getElementById("forgotStep1").style.display = "none";
+        document.getElementById("forgotStep2").style.display = "block";
       } else {
         showToast("❌ " + data.message);
       }
@@ -1866,26 +1967,27 @@ async function loginAdmin() {
     btn.disabled = false;
   }
 
-  async function verifyLoginOTP() {
-    const email = document.getElementById("loginEmail").value.trim();
-    const password = document.getElementById("loginPassword").value.trim();
-    const otp = document.getElementById("loginOtp").value.trim();
+  async function resetPassword() {
+    const email = document.getElementById("forgotEmail").value.trim();
+    const otp = document.getElementById("forgotOtp").value.trim();
+    const newPassword = document.getElementById("forgotNewPassword").value.trim();
 
     if (!otp) return showToast("Please enter the OTP");
+    if (!newPassword || newPassword.length < 6) return showToast("Password must be at least 6 characters");
 
     try {
-      const res = await fetch("/api?action=verify-login", {
+      const res = await fetch("/api?action=reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email, password, otp }),
+        body: JSON.stringify({ email, otp, newPassword }),
       });
       const data = await res.json();
 
       if (data.success) {
-        closeLoginModal();
-        showUserGreeting(data.name);
-        showToast("✅ Welcome back, " + data.name.split(" ")[0] + "!");
+        closeForgotModal();
+        showToast("✅ Password reset! Please login.");
+        openLoginModal();
       } else {
         showToast("❌ " + data.message);
       }
@@ -1901,6 +2003,7 @@ async function loginAdmin() {
     document.getElementById("signupStep2").style.display = "none";
     document.getElementById("signupName").value = "";
     document.getElementById("signupEmail").value = "";
+    document.getElementById("signupPhone").value = "";
     document.getElementById("signupPassword").value = "";
     document.getElementById("signupOtp").value = "";
   }
@@ -1912,9 +2015,11 @@ async function loginAdmin() {
   async function sendSignupOTP() {
     const name = document.getElementById("signupName").value.trim();
     const email = document.getElementById("signupEmail").value.trim();
+    const phone = document.getElementById("signupPhone").value.trim();
     const password = document.getElementById("signupPassword").value.trim();
 
-    if (!name || !email || !password) return showToast("Please fill all fields");
+    if (!name || !email || !phone || !password) return showToast("Please fill all fields");
+    if (phone.length !== 10) return showToast("Please enter a valid 10-digit mobile number");
     if (password.length < 6) return showToast("Password must be at least 6 characters");
 
     const btn = document.getElementById("signupOtpBtn");
@@ -1947,6 +2052,7 @@ async function loginAdmin() {
   async function verifySignupOTP() {
     const name = document.getElementById("signupName").value.trim();
     const email = document.getElementById("signupEmail").value.trim();
+    const phone = document.getElementById("signupPhone").value.trim();
     const password = document.getElementById("signupPassword").value.trim();
     const otp = document.getElementById("signupOtp").value.trim();
 
@@ -1957,7 +2063,7 @@ async function loginAdmin() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, email, password, otp }),
+        body: JSON.stringify({ name, email, phone, password, otp }),
       });
       const data = await res.json();
 
@@ -2017,55 +2123,93 @@ async function loginAdmin() {
     <h3 style="font-family:'Playfair Display',serif;font-size:22px;margin-bottom:6px;">Welcome Back</h3>
     <p style="font-size:13px;color:#888;margin-bottom:20px;">Login to your RCM Store account</p>
 
-    <!-- STEP 1: Email + Password -->
-    <div id="loginStep1">
-      <div style="margin-bottom:12px;">
-        <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">EMAIL</label>
-        <input id="loginEmail" type="email" placeholder="you@email.com"
-          style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
-          font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
-      </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">EMAIL</label>
+      <input id="loginEmail" type="email" placeholder="you@email.com"
+        style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
+        font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
+    </div>
+    <div style="margin-bottom:8px;">
+      <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">PASSWORD</label>
+      <input id="loginPassword" type="password" placeholder="Your password"
+        style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
+        font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
+    </div>
+
+    <p style="text-align:right;font-size:12px;margin-bottom:16px;">
+      <a href="#" onclick="openForgotModal()" style="color:#4a7c59;font-weight:600;">Forgot Password?</a>
+    </p>
+
+    <button onclick="loginUser()" id="loginOtpBtn"
+      style="width:100%;padding:13px;background:#1e1e1c;color:#fff;border:none;
+      border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+      Login →
+    </button>
+
+    <p style="text-align:center;font-size:13px;color:#888;margin-top:18px;">
+      No account? <a href="#" onclick="closeLoginModal();openSignupModal();"
+        style="color:#4a7c59;font-weight:600;">Sign Up</a>
+    </p>
+  </div>
+</div>
+
+<!-- ===== FORGOT PASSWORD MODAL ===== -->
+<div id="forgotModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);
+  z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:32px;border-radius:16px;width:360px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.2);position:relative;">
+
+    <button onclick="closeForgotModal()" style="position:absolute;top:16px;right:16px;
+      background:none;border:none;font-size:20px;cursor:pointer;color:#aaa;">✕</button>
+
+    <h3 style="font-family:'Playfair Display',serif;font-size:22px;margin-bottom:6px;">Reset Password</h3>
+    <p style="font-size:13px;color:#888;margin-bottom:20px;">We'll send an OTP to your email</p>
+
+    <!-- STEP 1: Email -->
+    <div id="forgotStep1">
       <div style="margin-bottom:16px;">
-        <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">PASSWORD</label>
-        <input id="loginPassword" type="password" placeholder="Your password"
+        <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">EMAIL</label>
+        <input id="forgotEmail" type="email" placeholder="you@email.com"
           style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
           font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
       </div>
-      <button onclick="sendLoginOTP()" id="loginOtpBtn"
+      <button onclick="sendResetOTP()" id="forgotOtpBtn"
         style="width:100%;padding:13px;background:#1e1e1c;color:#fff;border:none;
         border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
         Send OTP →
       </button>
     </div>
 
-    <!-- STEP 2: OTP -->
-    <div id="loginStep2" style="display:none;">
+    <!-- STEP 2: OTP + New Password -->
+    <div id="forgotStep2" style="display:none;">
       <p style="font-size:13px;color:#4a7c59;font-weight:600;margin-bottom:16px;">
         ✅ OTP sent! Check your email.
       </p>
       <div style="margin-bottom:16px;">
         <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">ENTER OTP</label>
-        <input id="loginOtp" type="text" maxlength="6" placeholder="6-digit OTP"
+        <input id="forgotOtp" type="text" maxlength="6" placeholder="6-digit OTP"
           style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
           font-size:18px;font-weight:700;letter-spacing:8px;text-align:center;
           font-family:'DM Sans',sans-serif;outline:none;">
       </div>
-      <button onclick="verifyLoginOTP()"
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">NEW PASSWORD</label>
+        <input id="forgotNewPassword" type="password" placeholder="Min. 6 characters"
+          style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
+          font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
+      </div>
+      <button onclick="resetPassword()"
         style="width:100%;padding:13px;background:#4a7c59;color:#fff;border:none;
         border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
-        Verify & Login ✓
+        Reset Password ✓
       </button>
-      <button onclick="sendLoginOTP()" style="width:100%;margin-top:8px;padding:10px;
+      <button onclick="sendResetOTP()" style="width:100%;margin-top:8px;padding:10px;
         background:none;border:1.5px solid #d6d6d2;border-radius:10px;font-size:13px;
         font-weight:600;cursor:pointer;color:#4a4a46;font-family:'DM Sans',sans-serif;">
         Resend OTP
       </button>
     </div>
 
-    <p style="text-align:center;font-size:13px;color:#888;margin-top:18px;">
-      No account? <a href="#" onclick="closeLoginModal();openSignupModal();"
-        style="color:#4a7c59;font-weight:600;">Sign Up</a>
-    </p>
   </div>
 </div>
 
@@ -2092,6 +2236,13 @@ async function loginAdmin() {
       <div style="margin-bottom:12px;">
         <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">EMAIL</label>
         <input id="signupEmail" type="email" placeholder="you@email.com"
+          style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
+          font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">MOBILE NUMBER</label>
+        <input id="signupPhone" type="tel" placeholder="9876543210" maxlength="10"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'')"
           style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
           font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
       </div>
@@ -2136,6 +2287,27 @@ async function loginAdmin() {
       Already have account? <a href="#" onclick="closeSignupModal();openLoginModal();"
         style="color:#4a7c59;font-weight:600;">Login</a>
     </p>
+  </div>
+</div>
+
+<!-- ===== MY ACCOUNT MODAL ===== -->
+<div id="accountModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);
+  z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:28px;border-radius:16px;width:480px;max-height:80vh;
+    overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);position:relative;">
+
+    <button onclick="closeAccountModal()" style="position:absolute;top:16px;right:16px;
+      background:none;border:none;font-size:20px;cursor:pointer;color:#aaa;">✕</button>
+
+    <h3 style="font-family:'Playfair Display',serif;font-size:22px;margin-bottom:16px;">My Account</h3>
+
+    <div id="accountProfile" style="margin-bottom:20px;padding:14px;background:#f8f8f6;border-radius:10px;">
+      <p style="font-weight:700;font-size:15px;" id="acctName"></p>
+      <p style="font-size:13px;color:#888;margin-top:2px;" id="acctEmail"></p>
+    </div>
+
+    <h4 style="font-size:14px;margin-bottom:10px;font-weight:700;">My Orders</h4>
+    <div id="myOrdersList"></div>
   </div>
 </div>
 

@@ -1334,6 +1334,10 @@
       <span class="nav-icon">◎</span> Customers
       <span class="nav-badge" id="navCustBadge">—</span>
     </div>
+    <div class="nav-item" onclick="showSection('users',this)">
+      <span class="nav-icon">👤</span> Signed-up Users
+      <span class="nav-badge" id="navUsersBadge">—</span>
+    </div>
 
     <div class="nav-label">Operations</div>
     <div class="nav-item" onclick="showSection('tracking',this)">
@@ -1558,6 +1562,35 @@
               </tr>
             </thead>
             <tbody id="customersTable">
+              <tr><td colspan="5"><div class="empty-state"><p>Loading…</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SIGNED-UP USERS ── -->
+    <div id="users" class="section">
+      <div class="table-wrap">
+        <div class="table-header">
+          <span class="table-title">Signed-up Users</span>
+          <div class="search-wrap">
+            <span>⌕</span>
+            <input type="text" placeholder="Search users…" onkeyup="searchTable(this,'usersTable')">
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Joined</th>
+              </tr>
+            </thead>
+            <tbody id="usersTable">
               <tr><td colspan="5"><div class="empty-state"><p>Loading…</p></div></td></tr>
             </tbody>
           </table>
@@ -1839,12 +1872,13 @@ function showSection(id,el){
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   if(el) el.classList.add("active");
 
-  const titles={dashboard:"Dashboard",orders:"Orders",customers:"Customers",tracking:"Tracking",contacts:"Contact Messages",products:"Products"};
+  const titles={dashboard:"Dashboard",orders:"Orders",customers:"Customers",users:"Signed-up Users",tracking:"Tracking",contacts:"Contact Messages",products:"Products"};
   document.getElementById('pageTitle').textContent=titles[id]||id;
   currentSection=id;
 
   if(id==='orders') loadOrders();
   if(id==='customers') loadCustomers();
+  if(id==='users') loadUsers();
   if(id==='contacts') loadContacts();
   if(id==='dashboard') loadDashboard();
   if(id==='products') renderProductGrid();
@@ -1991,6 +2025,33 @@ async function loadCustomers(){
     if(!data.customers||data.customers.length===0){t.innerHTML=`<tr><td colspan="5"><div class="empty-state">No customers</div></td></tr>`;return;}
     t.innerHTML=data.customers.map((c,i)=>`<tr><td>${i+1}</td><td class="td-main">${c.fname} ${c.lname}</td><td>${c.phone}</td><td>${c.email}</td><td>${c.orderCount||0}</td></tr>`).join('');
   }catch(e){console.error(e);t.innerHTML=`<tr><td colspan="5"><div class="empty-state">Error loading customers</div></td></tr>`;}
+}
+
+/* ── SIGNED-UP USERS ── */
+async function loadUsers(){
+  const t=document.getElementById("usersTable");
+  t.innerHTML=`<tr><td colspan="5"><div class="empty-state">⏳ Loading...</div></td></tr>`;
+  try{
+    const res=await fetch(`${API}/api?action=get-users`,{credentials:"include"});
+    if(!res.ok) throw new Error("Users failed");
+    const data=await res.json();
+    if(!data.success||!Array.isArray(data.users)||data.users.length===0){
+      t.innerHTML=`<tr><td colspan="5"><div class="empty-state">📭 No users yet</div></td></tr>`;
+      document.getElementById('navUsersBadge').textContent=0;
+      return;
+    }
+    document.getElementById('navUsersBadge').textContent=data.users.length;
+    t.innerHTML=data.users.map((u,i)=>`<tr>
+      <td>${i+1}</td>
+      <td class="td-main">${u.name||"-"}</td>
+      <td>${u.email||"-"}</td>
+      <td>${u.phone||"-"}</td>
+      <td>${u.createdAt?new Date(u.createdAt).toLocaleDateString("en-IN"):"-"}</td>
+    </tr>`).join('');
+  }catch(e){
+    console.error(e);
+    t.innerHTML=`<tr><td colspan="5"><div class="empty-state">❌ Error loading users</div></td></tr>`;
+  }
 }
 
 /* ── CONTACTS ── */

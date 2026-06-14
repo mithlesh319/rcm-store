@@ -232,30 +232,42 @@ else if (action === "get-orders") {
     });
   }
 }
-
-    // 💾 SAVE ORDER
+    //save order 
     else if (action === "save-order") {
-      if (req.method !== "POST") {
-        return res.status(405).json({
-          success: false,
-          message: "Method not allowed",
-        });
-      }
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      success: false,
+      message: "Method not allowed",
+    });
+  }
 
-      if (!body || !body.orderId) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid order data",
-        });
-      }
+  if (!body || !body.orderId) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid order data",
+    });
+  }
 
-      await db.collection("orders").insertOne({
-        ...body,
-        createdAt: new Date(),
-      });
+  // ✅ Attach logged-in user's email (if any)
+  const cookies = getCookies(req);
+  let userEmail = null;
 
-      return res.status(200).json({ success: true });
-    }
+  if (cookies.userToken) {
+    try {
+      const jwt = await import("jsonwebtoken");
+      const decoded = jwt.default.verify(cookies.userToken, process.env.JWT_SECRET);
+      userEmail = decoded.email;
+    } catch {}
+  }
+
+  await db.collection("orders").insertOne({
+    ...body,
+    userEmail,
+    createdAt: new Date(),
+  });
+
+  return res.status(200).json({ success: true });
+}
 
     // 🔍 TRACK ORDER
 else if (action === "track-order") {
@@ -740,7 +752,7 @@ else if (action === "get-products") {
 }
 
 
-// 📧 SEND OTP (SIGNUP / LOGIN)
+// 📧 SEND OTP (SIGNUP / RESET)
 else if (action === "send-otp") {
   if (req.method !== "POST") {
     return res.status(405).json({ success: false, message: "Only POST allowed" });
@@ -749,14 +761,14 @@ else if (action === "send-otp") {
   const { email, type } = body || {};
   if (!email) return res.status(400).json({ success: false, message: "Email required" });
 
-  // Check if user exists (for login vs signup)
+  // Check if user exists (for reset vs signup)
   const existingUser = await db.collection("users").findOne({ email });
 
   if (type === "signup" && existingUser) {
     return res.status(400).json({ success: false, message: "Email already registered. Please login." });
   }
 
-  if (type === "login" && !existingUser) {
+  if (type === "reset" && !existingUser) {
     return res.status(404).json({ success: false, message: "No account found. Please sign up first." });
   }
 
@@ -798,14 +810,15 @@ else if (action === "send-otp") {
 }
 
 // ✅ VERIFY OTP + SIGNUP
+// ✅ VERIFY OTP + SIGNUP
 else if (action === "verify-signup") {
   if (req.method !== "POST") {
     return res.status(405).json({ success: false });
   }
 
-  const { email, otp, name, password } = body || {};
+  const { email, otp, name, phone, password } = body || {};
 
-  if (!email || !otp || !name || !password) {
+  if (!email || !otp || !name || !phone || !password) {
     return res.status(400).json({ success: false, message: "All fields required" });
   }
 
@@ -832,6 +845,7 @@ else if (action === "verify-signup") {
   await db.collection("users").insertOne({
     name,
     email,
+    phone,
     passwordHash,
     createdAt: new Date(),
   });
@@ -848,19 +862,49 @@ else if (action === "verify-signup") {
   return res.status(200).json({ success: true, message: "Account created!", name });
 }
 
-// ✅ VERIFY OTP + LOGIN
-else if (action === "verify-login") {
+// ✅ LOGIN (EMAIL + PASSWORD ONLY)
+else if (action === "login") {
   if (req.method !== "POST") {
     return res.status(405).json({ success: false });
   }
 
-  const { email, otp, password } = body || {};
+  const { email, password } = body || {};
 
-  if (!email || !otp || !password) {
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: "Email and password required" });
+  }
+
+  const user = await db.collection("users").findOne({ email });
+  if (!user) return res.status(404).json({ success: false, message: "No account found. Please sign up first." });
+
+  const bcrypt = await import("bcryptjs");
+  const valid = await bcrypt.default.compare(password, user.passwordHash);
+  if (!valid) return res.status(401).json({ success: false, message: "Incorrect password" });
+
+  const jwt = await import("jsonwebtoken");
+  const token = jwt.default.sign({ email, name: user.name }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+  res.setHeader("Set-Cookie", `userToken=${token}; Path=/; HttpOnly; SameSite=Strict; Secure; Max-Age=604800`);
+
+  return res.status(200).json({ success: true, message: "Logged in!", name: user.name });
+}
+
+// 🔑 RESET PASSWORD (VIA OTP)
+else if (action === "reset-password") {
+  if (req.method !== "POST") {
+    return res.status(405).json({ success: false });
+  }
+
+  const { email, otp, newPassword } = body || {};
+
+  if (!email || !otp || !newPassword) {
     return res.status(400).json({ success: false, message: "All fields required" });
   }
 
-  // Check OTP
+  if (newPassword.length < 6) {
+    return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
+  }
+
   const otpRecord = await db.collection("otps").findOne({ email });
 
   if (!otpRecord || otpRecord.otp !== otp) {
@@ -871,24 +915,22 @@ else if (action === "verify-login") {
     return res.status(400).json({ success: false, message: "OTP expired. Request a new one." });
   }
 
-  // Check user + password
   const user = await db.collection("users").findOne({ email });
-  if (!user) return res.status(404).json({ success: false, message: "User not found" });
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
 
   const bcrypt = await import("bcryptjs");
-  const valid = await bcrypt.default.compare(password, user.passwordHash);
-  if (!valid) return res.status(401).json({ success: false, message: "Wrong password" });
+  const passwordHash = await bcrypt.default.hash(newPassword, 10);
 
-  // Delete used OTP
+  await db.collection("users").updateOne(
+    { email },
+    { $set: { passwordHash } }
+  );
+
   await db.collection("otps").deleteMany({ email });
 
-  // Issue JWT
-  const jwt = await import("jsonwebtoken");
-  const token = jwt.default.sign({ email, name: user.name }, process.env.JWT_SECRET, { expiresIn: "7d" });
-
-  res.setHeader("Set-Cookie", `userToken=${token}; Path=/; HttpOnly; SameSite=Strict; Secure; Max-Age=604800`);
-
-  return res.status(200).json({ success: true, message: "Logged in!", name: user.name });
+  return res.status(200).json({ success: true, message: "Password reset successful! Please login." });
 }
 
 // 🔓 USER LOGOUT
@@ -911,7 +953,77 @@ else if (action === "check-user") {
   } catch {
     return res.status(200).json({ loggedIn: false });
   }
-} 
+}
+
+// 📦 GET MY ORDERS (LOGGED-IN USER)
+else if (action === "get-my-orders") {
+  if (req.method !== "GET") {
+    return res.status(405).json({
+      success: false,
+      message: "Method not allowed",
+    });
+  }
+
+  const cookies = getCookies(req);
+  if (!cookies.userToken) {
+    return res.status(401).json({ success: false, message: "Not logged in" });
+  }
+
+  try {
+    const jwt = await import("jsonwebtoken");
+    const decoded = jwt.default.verify(cookies.userToken, process.env.JWT_SECRET);
+
+    const orders = await db.collection("orders")
+      .find({ userEmail: decoded.email })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    const safeOrders = orders.map(o => ({ ...o, _id: o._id?.toString() }));
+
+    return res.status(200).json({ success: true, orders: safeOrders });
+  } catch {
+    return res.status(401).json({ success: false, message: "Invalid session" });
+  }
+}
+
+// 👤 GET ALL SIGNED-UP USERS (ADMIN ONLY)
+else if (action === "get-users") {
+  if (req.method !== "GET") {
+    return res.status(405).json({
+      success: false,
+      message: "Method not allowed",
+    });
+  }
+
+  if (!isAdmin(req)) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
+
+  try {
+    const users = await db
+      .collection("users")
+      .find({}, { projection: { passwordHash: 0 } })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    const safeUsers = users.map(u => ({ ...u, _id: u._id?.toString() }));
+
+    return res.status(200).json({
+      success: true,
+      users: safeUsers,
+    });
+
+  } catch (err) {
+    console.error("Get Users Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
 
     // ❌ DEFAULT
     else {
