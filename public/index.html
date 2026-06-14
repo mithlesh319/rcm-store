@@ -693,6 +693,32 @@ img { max-width: 100%; height: auto; display: block; }
     border-top: 1px solid var(--light-grey);
   }
 }
+
+.login-btn,
+.signup-btn{
+  border:none;
+  cursor:pointer;
+  padding:8px 14px;
+  border-radius:8px;
+  font-weight:400;
+  margin-left:2px;
+}
+
+.login-btn{
+  background:#fff;
+  color:#16a34a;
+  border:1px solid #16a34a;
+}
+
+.signup-btn{
+  background:#16a34a;
+  color:#fff;
+}
+
+.login-btn:hover,
+.signup-btn:hover{
+  opacity:.9;
+}
   </style>
 </head>
 <body>
@@ -700,28 +726,56 @@ img { max-width: 100%; height: auto; display: block; }
 <div class="announcement">🚚 Free delivery on orders above <span>₹599</span> &nbsp;|&nbsp; Use code <span>RCM20</span> for 20% off on first order</div>
 
 <nav>
-  
   <div class="nav-inner">
+
     <a class="logo" href="#">
-      <div class="logo-badge"><span>RCM</span></div>
-      <div class="logo-text"><h1>RCM Store</h1><p>Fresh. Pure. Trusted.</p></div>
+      <div class="logo-badge">
+        <span>RCM</span>
+      </div>
+      <div class="logo-text">
+        <h1>RCM Store</h1>
+        <p>Fresh. Pure. Trusted.</p>
+      </div>
     </a>
+
     <ul class="nav-links" id="navLinks">
-  <li><a href="#products">Products</a></li>
-  <li><a href="#offers">Offers</a></li>
-  <li><a href="contact.html">Contact</a></li>
-  <li><a href="track.html">Track Order</a></li>
-<li><a href="#" onclick="openAdminLogin()">Admin</a></li>
-</ul>
-<button class="menu-toggle" onclick="toggleMenu()">☰</button>
+      <li><a href="contact.html">Contact</a></li>
+      <li><a href="track.html">Track Order</a></li>
+      <li><a href="#" onclick="openAdminLogin()">Admin</a></li>
+    </ul>
+
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+
     <div class="nav-actions">
+
       <div class="search-bar">
         <span>🔍</span>
-        <input type="text" id="searchInput" placeholder="Search products…"/>
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search products…"
+        />
       </div>
-      <button class="cart-btn" onclick="toggleCart()">🛒 Cart <span class="cart-count" id="cartCount">0</span></button>
-      
+
+      <!-- ✅ LOGGED IN: shows greeting + logout -->
+      <div id="userGreeting" style="display:none;align-items:center;gap:10px;">
+        <span id="userNameDisplay" style="font-size:13px;font-weight:600;color:var(--accent-green);"></span>
+        <button class="login-btn" onclick="logoutUser()">Logout</button>
+      </div>
+
+      <!-- ✅ LOGGED OUT: shows login + signup -->
+      <div id="authButtons" style="display:flex;gap:6px;">
+        <button class="login-btn" onclick="openLoginModal()">Login</button>
+        <button class="signup-btn" onclick="openSignupModal()">Sign Up</button>
+      </div>
+
+      <button class="cart-btn" onclick="toggleCart()">
+        🛒 Cart
+        <span class="cart-count" id="cartCount">0</span>
+      </button>
+
     </div>
+
   </div>
 </nav>
 
@@ -793,15 +847,7 @@ img { max-width: 100%; height: auto; display: block; }
   </div>
 </div>
 
-<!-- NEWSLETTER -->
-<div class="newsletter">
-  <h2>Get Exclusive Deals in Your Inbox</h2>
-  <p>Subscribe to receive weekly offers, new RCM arrivals, and healthy living tips</p>
-  <div class="newsletter-form">
-    <input type="email" placeholder="Enter your email address…"/>
-    <button onclick="subscribeNewsletter()">Subscribe</button>
-  </div>
-</div>
+
 
 <!-- FOOTER -->
 <footer id="contact">
@@ -1664,6 +1710,7 @@ function toggleMenu() {
 }
   document.addEventListener("DOMContentLoaded", () => {
   loadProducts();
+  checkUserSession();
 
   const searchInput = document.getElementById("searchInput");
   const noResults = document.getElementById("noResults");
@@ -1748,6 +1795,185 @@ async function loginAdmin() {
   }
 }
 
+// ========== AUTH STATE ==========
+  async function checkUserSession() {
+    try {
+      const res = await fetch("/api?action=check-user", { credentials: "include" });
+      const data = await res.json();
+      if (data.loggedIn) {
+        showUserGreeting(data.name);
+      }
+    } catch (e) {}
+  }
+
+  function showUserGreeting(name) {
+    document.getElementById("authButtons").style.display = "none";
+    document.getElementById("userGreeting").style.display = "flex";
+    document.getElementById("userNameDisplay").textContent = "Hi, " + name.split(" ")[0] + "! 👋";
+  }
+
+  async function logoutUser() {
+    await fetch("/api?action=user-logout", { credentials: "include" });
+    document.getElementById("authButtons").style.display = "flex";
+    document.getElementById("userGreeting").style.display = "none";
+    showToast("Logged out successfully!");
+  }
+
+  // ========== LOGIN ==========
+  function openLoginModal() {
+    document.getElementById("loginModal").style.display = "flex";
+    document.getElementById("loginStep1").style.display = "block";
+    document.getElementById("loginStep2").style.display = "none";
+    document.getElementById("loginEmail").value = "";
+    document.getElementById("loginPassword").value = "";
+    document.getElementById("loginOtp").value = "";
+  }
+
+  function closeLoginModal() {
+    document.getElementById("loginModal").style.display = "none";
+  }
+
+  async function sendLoginOTP() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value.trim();
+
+    if (!email || !password) return showToast("Please enter email and password");
+
+    const btn = document.getElementById("loginOtpBtn");
+    btn.textContent = "Sending...";
+    btn.disabled = true;
+
+    try {
+      const res = await fetch("/api?action=send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, type: "login" }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        document.getElementById("loginStep1").style.display = "none";
+        document.getElementById("loginStep2").style.display = "block";
+      } else {
+        showToast("❌ " + data.message);
+      }
+    } catch (e) {
+      showToast("❌ Server error. Try again.");
+    }
+
+    btn.textContent = "Send OTP →";
+    btn.disabled = false;
+  }
+
+  async function verifyLoginOTP() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value.trim();
+    const otp = document.getElementById("loginOtp").value.trim();
+
+    if (!otp) return showToast("Please enter the OTP");
+
+    try {
+      const res = await fetch("/api?action=verify-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password, otp }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        closeLoginModal();
+        showUserGreeting(data.name);
+        showToast("✅ Welcome back, " + data.name.split(" ")[0] + "!");
+      } else {
+        showToast("❌ " + data.message);
+      }
+    } catch (e) {
+      showToast("❌ Server error. Try again.");
+    }
+  }
+
+  // ========== SIGNUP ==========
+  function openSignupModal() {
+    document.getElementById("signupModal").style.display = "flex";
+    document.getElementById("signupStep1").style.display = "block";
+    document.getElementById("signupStep2").style.display = "none";
+    document.getElementById("signupName").value = "";
+    document.getElementById("signupEmail").value = "";
+    document.getElementById("signupPassword").value = "";
+    document.getElementById("signupOtp").value = "";
+  }
+
+  function closeSignupModal() {
+    document.getElementById("signupModal").style.display = "none";
+  }
+
+  async function sendSignupOTP() {
+    const name = document.getElementById("signupName").value.trim();
+    const email = document.getElementById("signupEmail").value.trim();
+    const password = document.getElementById("signupPassword").value.trim();
+
+    if (!name || !email || !password) return showToast("Please fill all fields");
+    if (password.length < 6) return showToast("Password must be at least 6 characters");
+
+    const btn = document.getElementById("signupOtpBtn");
+    btn.textContent = "Sending...";
+    btn.disabled = true;
+
+    try {
+      const res = await fetch("/api?action=send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, type: "signup" }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        document.getElementById("signupStep1").style.display = "none";
+        document.getElementById("signupStep2").style.display = "block";
+      } else {
+        showToast("❌ " + data.message);
+      }
+    } catch (e) {
+      showToast("❌ Server error. Try again.");
+    }
+
+    btn.textContent = "Send OTP →";
+    btn.disabled = false;
+  }
+
+  async function verifySignupOTP() {
+    const name = document.getElementById("signupName").value.trim();
+    const email = document.getElementById("signupEmail").value.trim();
+    const password = document.getElementById("signupPassword").value.trim();
+    const otp = document.getElementById("signupOtp").value.trim();
+
+    if (!otp) return showToast("Please enter the OTP");
+
+    try {
+      const res = await fetch("/api?action=verify-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name, email, password, otp }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        closeSignupModal();
+        showUserGreeting(data.name);
+        showToast("🎉 Account created! Welcome to RCM Store!");
+      } else {
+        showToast("❌ " + data.message);
+      }
+    } catch (e) {
+      showToast("❌ Server error. Try again.");
+    }
+  }
+
+
 </script>
 
 
@@ -1779,6 +2005,144 @@ async function loginAdmin() {
   </div>
 </div>
 
+<!-- ===== LOGIN MODAL ===== -->
+<div id="loginModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);
+  z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:32px;border-radius:16px;width:360px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.2);position:relative;">
+
+    <button onclick="closeLoginModal()" style="position:absolute;top:16px;right:16px;
+      background:none;border:none;font-size:20px;cursor:pointer;color:#aaa;">✕</button>
+
+    <h3 style="font-family:'Playfair Display',serif;font-size:22px;margin-bottom:6px;">Welcome Back</h3>
+    <p style="font-size:13px;color:#888;margin-bottom:20px;">Login to your RCM Store account</p>
+
+    <!-- STEP 1: Email + Password -->
+    <div id="loginStep1">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">EMAIL</label>
+        <input id="loginEmail" type="email" placeholder="you@email.com"
+          style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
+          font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">PASSWORD</label>
+        <input id="loginPassword" type="password" placeholder="Your password"
+          style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
+          font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
+      </div>
+      <button onclick="sendLoginOTP()" id="loginOtpBtn"
+        style="width:100%;padding:13px;background:#1e1e1c;color:#fff;border:none;
+        border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+        Send OTP →
+      </button>
+    </div>
+
+    <!-- STEP 2: OTP -->
+    <div id="loginStep2" style="display:none;">
+      <p style="font-size:13px;color:#4a7c59;font-weight:600;margin-bottom:16px;">
+        ✅ OTP sent! Check your email.
+      </p>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">ENTER OTP</label>
+        <input id="loginOtp" type="text" maxlength="6" placeholder="6-digit OTP"
+          style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
+          font-size:18px;font-weight:700;letter-spacing:8px;text-align:center;
+          font-family:'DM Sans',sans-serif;outline:none;">
+      </div>
+      <button onclick="verifyLoginOTP()"
+        style="width:100%;padding:13px;background:#4a7c59;color:#fff;border:none;
+        border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+        Verify & Login ✓
+      </button>
+      <button onclick="sendLoginOTP()" style="width:100%;margin-top:8px;padding:10px;
+        background:none;border:1.5px solid #d6d6d2;border-radius:10px;font-size:13px;
+        font-weight:600;cursor:pointer;color:#4a4a46;font-family:'DM Sans',sans-serif;">
+        Resend OTP
+      </button>
+    </div>
+
+    <p style="text-align:center;font-size:13px;color:#888;margin-top:18px;">
+      No account? <a href="#" onclick="closeLoginModal();openSignupModal();"
+        style="color:#4a7c59;font-weight:600;">Sign Up</a>
+    </p>
+  </div>
+</div>
+
+<!-- ===== SIGNUP MODAL ===== -->
+<div id="signupModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);
+  z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:32px;border-radius:16px;width:360px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.2);position:relative;">
+
+    <button onclick="closeSignupModal()" style="position:absolute;top:16px;right:16px;
+      background:none;border:none;font-size:20px;cursor:pointer;color:#aaa;">✕</button>
+
+    <h3 style="font-family:'Playfair Display',serif;font-size:22px;margin-bottom:6px;">Create Account</h3>
+    <p style="font-size:13px;color:#888;margin-bottom:20px;">Join RCM Store — it's free!</p>
+
+    <!-- STEP 1: Details -->
+    <div id="signupStep1">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">FULL NAME</label>
+        <input id="signupName" type="text" placeholder="Rahul Sharma"
+          style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
+          font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">EMAIL</label>
+        <input id="signupEmail" type="email" placeholder="you@email.com"
+          style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
+          font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">PASSWORD</label>
+        <input id="signupPassword" type="password" placeholder="Min. 6 characters"
+          style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
+          font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
+      </div>
+      <button onclick="sendSignupOTP()" id="signupOtpBtn"
+        style="width:100%;padding:13px;background:#1e1e1c;color:#fff;border:none;
+        border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+        Send OTP →
+      </button>
+    </div>
+
+    <!-- STEP 2: OTP -->
+    <div id="signupStep2" style="display:none;">
+      <p style="font-size:13px;color:#4a7c59;font-weight:600;margin-bottom:16px;">
+        ✅ OTP sent to your email!
+      </p>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;color:#4a4a46;display:block;margin-bottom:4px;">ENTER OTP</label>
+        <input id="signupOtp" type="text" maxlength="6" placeholder="6-digit OTP"
+          style="width:100%;padding:11px 14px;border:1.5px solid #efefed;border-radius:10px;
+          font-size:18px;font-weight:700;letter-spacing:8px;text-align:center;
+          font-family:'DM Sans',sans-serif;outline:none;">
+      </div>
+      <button onclick="verifySignupOTP()"
+        style="width:100%;padding:13px;background:#4a7c59;color:#fff;border:none;
+        border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+        Create Account ✓
+      </button>
+      <button onclick="sendSignupOTP()" style="width:100%;margin-top:8px;padding:10px;
+        background:none;border:1.5px solid #d6d6d2;border-radius:10px;font-size:13px;
+        font-weight:600;cursor:pointer;color:#4a4a46;font-family:'DM Sans',sans-serif;">
+        Resend OTP
+      </button>
+    </div>
+
+    <p style="text-align:center;font-size:13px;color:#888;margin-top:18px;">
+      Already have account? <a href="#" onclick="closeSignupModal();openLoginModal();"
+        style="color:#4a7c59;font-weight:600;">Login</a>
+    </p>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span>✅</span>
+  <span id="toastMsg">Added to cart!</span>
+</div>
 
 </body>
 </html>

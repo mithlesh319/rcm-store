@@ -188,26 +188,50 @@ else if (action === "get-contacts") {
       return res.json({ key: process.env.RAZORPAY_KEY_ID });
     }
 
-    // 📦 GET ORDERS
-    else if (action === "get-orders") {
-      if (req.method !== "GET") {
-        return res.status(405).json({
-          success: false,
-          message: "Method not allowed",
-        });
-      }
+    // 📦 GET ORDERS (ADMIN ONLY)
+else if (action === "get-orders") {
+  if (req.method !== "GET") {
+    return res.status(405).json({
+      success: false,
+      message: "Method not allowed",
+    });
+  }
 
-      const orders = await db
-        .collection("orders")
-        .find({})
-        .sort({ createdAt: -1 })
-        .toArray();
+  // 🔐 ADMIN CHECK
+  if (!isAdmin(req)) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
 
-      return res.status(200).json({
-        success: true,
-        orders,
-      });
-    }
+  try {
+    const orders = await db
+      .collection("orders")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    // ✅ FIX: make _id frontend-safe + ensure consistent format
+    const safeOrders = orders.map(o => ({
+      ...o,
+      _id: o._id?.toString(),
+      orderId: o.orderId?.trim()?.toUpperCase(),
+    }));
+
+    return res.status(200).json({
+      success: true,
+      orders: safeOrders,
+    });
+
+  } catch (err) {
+    console.error("Get Orders Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
 
     // 💾 SAVE ORDER
     else if (action === "save-order") {
@@ -242,13 +266,7 @@ else if (action === "track-order") {
     });
   }
 
-  // 🔐 ADMIN CHECK (IMPORTANT UPDATE)
-  if (!isAdmin(req)) {
-    return res.status(401).json({
-      success: false,
-      message: "Unauthorized",
-    });
-  }
+  
 
   const { orderId } = body || {};
 
@@ -360,50 +378,7 @@ else if (action === "update-status") {
       });
     }
 
-    // 📦 GET ORDERS (ADMIN ONLY)
-else if (action === "get-orders") {
-  if (req.method !== "GET") {
-    return res.status(405).json({
-      success: false,
-      message: "Method not allowed",
-    });
-  }
-
-  // 🔐 ADMIN CHECK
-  if (!isAdmin(req)) {
-    return res.status(401).json({
-      success: false,
-      message: "Unauthorized",
-    });
-  }
-
-  try {
-    const orders = await db
-      .collection("orders")
-      .find({})
-      .sort({ createdAt: -1 })
-      .toArray();
-
-    // ✅ FIX: make _id frontend-safe + ensure consistent format
-    const safeOrders = orders.map(o => ({
-      ...o,
-      _id: o._id?.toString(),
-      orderId: o.orderId?.trim()?.toUpperCase(),
-    }));
-
-    return res.status(200).json({
-      success: true,
-      orders: safeOrders,
-    });
-
-  } catch (err) {
-    console.error("Get Orders Error:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
-}
+    
 
 // ➕ ADD PRODUCT
 else if (action === "add-product") {
@@ -765,6 +740,178 @@ else if (action === "get-products") {
 }
 
 
+// 📧 SEND OTP (SIGNUP / LOGIN)
+else if (action === "send-otp") {
+  if (req.method !== "POST") {
+    return res.status(405).json({ success: false, message: "Only POST allowed" });
+  }
+
+  const { email, type } = body || {};
+  if (!email) return res.status(400).json({ success: false, message: "Email required" });
+
+  // Check if user exists (for login vs signup)
+  const existingUser = await db.collection("users").findOne({ email });
+
+  if (type === "signup" && existingUser) {
+    return res.status(400).json({ success: false, message: "Email already registered. Please login." });
+  }
+
+  if (type === "login" && !existingUser) {
+    return res.status(404).json({ success: false, message: "No account found. Please sign up first." });
+  }
+
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+
+  // Save OTP to DB (overwrite any existing)
+  await db.collection("otps").deleteMany({ email });
+  await db.collection("otps").insertOne({ email, otp, expiresAt });
+
+  // Send OTP email via Gmail
+  const nodemailer = await import("nodemailer");
+  const transporter = nodemailer.default.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"RCM Store" <${process.env.GMAIL_USER}>`,
+    to: email,
+    subject: "Your RCM Store OTP Code",
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:420px;margin:auto;padding:32px;border:1px solid #eee;border-radius:12px;">
+        <h2 style="color:#16a34a;">RCM Store</h2>
+        <p>Your One-Time Password is:</p>
+        <div style="font-size:40px;font-weight:bold;letter-spacing:10px;color:#1e1e1c;margin:24px 0;">
+          ${otp}
+        </div>
+        <p style="color:#888;font-size:13px;">This OTP expires in <strong>5 minutes</strong>. Do not share it with anyone.</p>
+      </div>
+    `,
+  });
+
+  return res.status(200).json({ success: true, message: "OTP sent to " + email });
+}
+
+// ✅ VERIFY OTP + SIGNUP
+else if (action === "verify-signup") {
+  if (req.method !== "POST") {
+    return res.status(405).json({ success: false });
+  }
+
+  const { email, otp, name, password } = body || {};
+
+  if (!email || !otp || !name || !password) {
+    return res.status(400).json({ success: false, message: "All fields required" });
+  }
+
+  // Check OTP
+  const otpRecord = await db.collection("otps").findOne({ email });
+
+  if (!otpRecord) {
+    return res.status(400).json({ success: false, message: "OTP expired. Request a new one." });
+  }
+
+  if (otpRecord.otp !== otp) {
+    return res.status(400).json({ success: false, message: "Incorrect OTP" });
+  }
+
+  if (new Date() > new Date(otpRecord.expiresAt)) {
+    return res.status(400).json({ success: false, message: "OTP expired. Request a new one." });
+  }
+
+  // Hash password
+  const bcrypt = await import("bcryptjs");
+  const passwordHash = await bcrypt.default.hash(password, 10);
+
+  // Save user
+  await db.collection("users").insertOne({
+    name,
+    email,
+    passwordHash,
+    createdAt: new Date(),
+  });
+
+  // Delete used OTP
+  await db.collection("otps").deleteMany({ email });
+
+  // Issue JWT session cookie
+  const jwt = await import("jsonwebtoken");
+  const token = jwt.default.sign({ email, name }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+  res.setHeader("Set-Cookie", `userToken=${token}; Path=/; HttpOnly; SameSite=Strict; Secure; Max-Age=604800`);
+
+  return res.status(200).json({ success: true, message: "Account created!", name });
+}
+
+// ✅ VERIFY OTP + LOGIN
+else if (action === "verify-login") {
+  if (req.method !== "POST") {
+    return res.status(405).json({ success: false });
+  }
+
+  const { email, otp, password } = body || {};
+
+  if (!email || !otp || !password) {
+    return res.status(400).json({ success: false, message: "All fields required" });
+  }
+
+  // Check OTP
+  const otpRecord = await db.collection("otps").findOne({ email });
+
+  if (!otpRecord || otpRecord.otp !== otp) {
+    return res.status(400).json({ success: false, message: "Incorrect or expired OTP" });
+  }
+
+  if (new Date() > new Date(otpRecord.expiresAt)) {
+    return res.status(400).json({ success: false, message: "OTP expired. Request a new one." });
+  }
+
+  // Check user + password
+  const user = await db.collection("users").findOne({ email });
+  if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+  const bcrypt = await import("bcryptjs");
+  const valid = await bcrypt.default.compare(password, user.passwordHash);
+  if (!valid) return res.status(401).json({ success: false, message: "Wrong password" });
+
+  // Delete used OTP
+  await db.collection("otps").deleteMany({ email });
+
+  // Issue JWT
+  const jwt = await import("jsonwebtoken");
+  const token = jwt.default.sign({ email, name: user.name }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+  res.setHeader("Set-Cookie", `userToken=${token}; Path=/; HttpOnly; SameSite=Strict; Secure; Max-Age=604800`);
+
+  return res.status(200).json({ success: true, message: "Logged in!", name: user.name });
+}
+
+// 🔓 USER LOGOUT
+else if (action === "user-logout") {
+  res.setHeader("Set-Cookie", "userToken=; Path=/; HttpOnly; SameSite=Strict; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+  return res.status(200).json({ success: true });
+}
+
+// 👤 CHECK USER SESSION
+else if (action === "check-user") {
+  const cookies = getCookies(req);
+  const token = cookies.userToken;
+
+  if (!token) return res.status(200).json({ loggedIn: false });
+
+  try {
+    const jwt = await import("jsonwebtoken");
+    const decoded = jwt.default.verify(token, process.env.JWT_SECRET);
+    return res.status(200).json({ loggedIn: true, name: decoded.name, email: decoded.email });
+  } catch {
+    return res.status(200).json({ loggedIn: false });
+  }
+} 
 
     // ❌ DEFAULT
     else {
