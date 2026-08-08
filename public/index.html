@@ -765,7 +765,7 @@ img { max-width: 100%; height: auto; display: block; }
     <ul class="nav-links" id="navLinks">
       <li><a href="contact.html">Contact</a></li>
       <li><a href="track.html">Track Order</a></li>
-      <li><a href="#" onclick="openAdminLogin()">Admin</a></li>
+      
     </ul>
 
     <button class="menu-toggle" onclick="toggleMenu()">☰</button>
@@ -1735,6 +1735,10 @@ function toggleMenu() {
   document.addEventListener("DOMContentLoaded", () => {
   loadProducts();
   checkUserSession();
+
+  if (new URLSearchParams(window.location.search).get("entrykey") === "Mithlesh1st@dmin") {
+    openAdminLogin();
+  }
 
   const searchInput = document.getElementById("searchInput");
   const noResults = document.getElementById("noResults");
